@@ -265,9 +265,9 @@ function setupMenuPointerDrag(card, menu) {
 
   card.addEventListener("pointerdown", (event) => {
     if (event.button !== 0 || event.target.closest("input, textarea, button, select")) return;
-    // 右端16pxはスクロール用余白なのでドラッグ開始しない
+    // 右端32pxはスクロール用余白なのでドラッグ開始しない
     const rect = card.getBoundingClientRect();
-    if (event.clientX > rect.right - 16) return;
+    if (event.clientX > rect.right - 32) return;
     drag = {
       menu,
       startX: event.clientX,
