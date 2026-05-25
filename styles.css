@@ -140,7 +140,7 @@ h2 {
 
 .menu-card {
   flex: 0 0 auto;
-  min-height: 230px;
+  min-height: 168px;
   border: 1px solid var(--line);
   border-left: 5px solid var(--card-color, var(--speed));
   border-radius: 8px;
@@ -188,14 +188,14 @@ h2 {
 
 .set-controls {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
   margin-top: 12px;
 }
 
 .mini-field {
   display: grid;
-  grid-template-columns: 54px minmax(96px, 1fr) 28px;
+  grid-template-columns: 46px minmax(64px, 1fr) 24px;
   align-items: center;
   gap: 8px;
   min-width: 0;
@@ -233,7 +233,7 @@ h2 {
 
 .focus-field textarea {
   width: 100%;
-  min-height: 68px;
+  min-height: 48px;
   resize: vertical;
   border: 1px solid var(--line);
   border-radius: 6px;
@@ -257,6 +257,16 @@ h2 {
   align-items: center;
   gap: 8px;
   margin-top: 12px;
+}
+
+.drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.9;
+  box-shadow: 0 16px 34px rgba(32, 33, 36, 0.2);
 }
 
 .quick-add-button {
@@ -673,18 +683,17 @@ select {
   }
 
   .menu-grid {
-    display: grid;
-    grid-auto-columns: minmax(300px, 86vw);
-    grid-auto-flow: column;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 2px 4px 12px 0;
-    scroll-snap-type: x proximity;
+    display: flex;
+    flex-direction: column;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
   }
 
   .menu-card {
-    min-height: 250px;
-    scroll-snap-align: start;
+    min-height: 158px;
+    padding: 12px;
+    touch-action: none;
   }
 
   .quick-add-button {
@@ -694,7 +703,16 @@ select {
   }
 
   .mini-field {
-    grid-template-columns: 50px minmax(80px, 1fr) 26px;
+    grid-template-columns: 45px minmax(58px, 1fr) 24px;
+    gap: 6px;
+  }
+
+  .set-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .focus-field textarea {
+    min-height: 44px;
   }
 
   .planner-header {

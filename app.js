@@ -209,6 +209,7 @@ function renderMenu() {
       event.dataTransfer.setData("application/json", dragPayload(menu));
       event.dataTransfer.effectAllowed = "copy";
     });
+    setupMenuPointerDrag(card, menu);
     card.querySelectorAll("input, textarea").forEach((input) => {
       input.addEventListener("input", () => {
         setting[input.name] = input.type === "number" ? Number(input.value) : input.value;
@@ -224,6 +225,85 @@ function renderMenu() {
     });
     menuGrid.appendChild(card);
   });
+}
+
+function setupMenuPointerDrag(card, menu) {
+  let drag = null;
+
+  card.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || event.target.closest("input, textarea, button, select")) return;
+    drag = {
+      menu,
+      startX: event.clientX,
+      startY: event.clientY,
+      ghost: null,
+      active: false,
+      pointerId: event.pointerId,
+    };
+  });
+
+  card.addEventListener("pointermove", (event) => {
+    if (!drag) return;
+    const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
+    if (!drag.active && distance < 10) return;
+    if (!drag.active) {
+      drag.active = true;
+      drag.ghost = createDragGhost(card);
+      document.body.appendChild(drag.ghost);
+      card.setPointerCapture(drag.pointerId);
+    }
+    event.preventDefault();
+    moveDragGhost(drag.ghost, event.clientX, event.clientY);
+    highlightDropZone(event.clientX, event.clientY);
+  });
+
+  card.addEventListener("pointerup", (event) => {
+    if (!drag) return;
+    const current = drag;
+    drag = null;
+    clearDropHighlights();
+    if (current.ghost) current.ghost.remove();
+    if (!current.active) return;
+    const zone = document.elementFromPoint(event.clientX, event.clientY)?.closest(".drop-zone");
+    if (!zone) return;
+    addMenuToDropPoint(current.menu, Number(zone.dataset.day), zone, event.clientY);
+  });
+
+  card.addEventListener("pointercancel", () => {
+    if (drag?.ghost) drag.ghost.remove();
+    drag = null;
+    clearDropHighlights();
+  });
+}
+
+function createDragGhost(card) {
+  const ghost = card.cloneNode(true);
+  ghost.classList.add("drag-ghost");
+  ghost.style.width = `${Math.min(card.offsetWidth, 320)}px`;
+  return ghost;
+}
+
+function moveDragGhost(ghost, x, y) {
+  ghost.style.transform = `translate(${x + 12}px, ${y + 12}px)`;
+}
+
+function highlightDropZone(x, y) {
+  clearDropHighlights();
+  document.elementFromPoint(x, y)?.closest(".drop-zone")?.classList.add("drag-over");
+}
+
+function clearDropHighlights() {
+  document.querySelectorAll(".drop-zone.drag-over").forEach((zone) => zone.classList.remove("drag-over"));
+}
+
+function addMenuToDropPoint(menu, day, zone, clientY) {
+  const duration = calculateDuration(menu);
+  const rect = zone.getBoundingClientRect();
+  const y = clamp(clientY - rect.top, 0, rect.height);
+  const startOffset = snapMinutes((y / hourHeight()) * 60);
+  const maxStart = minutesPerDay() - duration;
+  const start = state.dayStart * 60 + clamp(startOffset, 0, Math.max(0, maxStart));
+  addMenuToDay(menu, day, start);
 }
 
 function addMenuToDay(menu, day, start) {
