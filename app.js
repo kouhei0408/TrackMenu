@@ -1,996 +1,936 @@
-const days = ["月", "火", "水", "木", "金", "土", "日"];
-const blockLabels = {
-  short: "短距離ブロック",
-  long: "長距離ブロック",
-};
-
-function defaultExportTitle(date = new Date()) {
-  const month = date.getMonth() + 1;
-  const week = Math.ceil(date.getDate() / 7);
-  return `メニュー_${month}月${week}週`;
+:root {
+  --bg: #f4f1eb;
+  --panel: #fffdfa;
+  --ink: #202124;
+  --muted: #6c6f75;
+  --line: #ded8ce;
+  --track: #faf8f4;
+  --speed: #df3f32;
+  --endurance: #1976a3;
+  --strength: #6e8b3d;
+  --recovery: #8c6dba;
+  --technical: #d58c21;
+  --shadow: 0 20px 45px rgba(45, 40, 32, 0.13);
 }
 
-const fallbackMenusCsv = `メニュー名,カテゴリ,負荷,セット指定
-流し + WS,スピード,中,1
-120m加速走,スピード,高,1
-400mインターバル,持久,超高,1
-テンポ走,持久,中,0
-スタート練習,技術,中,1
-ハードルドリル,技術,低,0
-ウエイト 下半身,筋トレ,高,0
-体幹補強,筋トレ,中,0
-回復ジョグ,回復,低,0`;
-
-const defaultMenus = menusFromCsv(fallbackMenusCsv);
-
-let state = {
-  menus: defaultMenus,
-  menuSettings: {},
-  blockType: "short",
-  exportTitle: defaultExportTitle(),
-  dayStart: 6,
-  dayEnd: 19,
-  workouts: [],
-  activeDay: 0, // スマホ用: 選択中の曜日
-};
-
-const menuGrid = document.querySelector("#menuGrid");
-const menuCountLabel = document.querySelector("#menuCountLabel");
-const weekGrid = document.querySelector("#weekGrid");
-const timeRail = document.querySelector("#timeRail");
-const dayStartInput = document.querySelector("#dayStartInput");
-const dayEndInput = document.querySelector("#dayEndInput");
-const blockSelect = document.querySelector("#blockSelect");
-const plannerTitle = document.querySelector("#plannerTitle");
-const exportTitleInput = document.querySelector("#exportTitleInput");
-const exportCanvas = document.querySelector("#exportCanvas");
-const editModal = document.querySelector("#editModal");
-const editName = document.querySelector("#editName");
-const editDay = document.querySelector("#editDay");
-const editStart = document.querySelector("#editStart");
-const editDuration = document.querySelector("#editDuration");
-const editMemo = document.querySelector("#editMemo");
-const dayTabsEl = document.querySelector("#dayTabs");
-let editingWorkoutId = null;
-
-function minutesPerDay() {
-  return (state.dayEnd - state.dayStart) * 60;
+* {
+  box-sizing: border-box;
 }
 
-function hourHeight() {
-  return 108;
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Yu Gothic UI", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
 }
 
-function timelineHeight() {
-  return (minutesPerDay() / 60) * hourHeight();
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
-function saveState() {
-  const { menus, ...savedState } = state;
-  localStorage.setItem("trackWeekPlanner", JSON.stringify(savedState));
+button {
+  cursor: pointer;
 }
 
-function loadState() {
-  const saved = localStorage.getItem("trackWeekPlanner");
-  if (!saved) return;
-  try {
-    state = { ...state, ...JSON.parse(saved), menus: defaultMenus };
-    normalizeTimeline();
-  } catch {
-    localStorage.removeItem("trackWeekPlanner");
+.app {
+  display: grid;
+  grid-template-columns: minmax(380px, 460px) 1fr;
+  gap: 18px;
+  height: 100vh;
+  overflow: hidden;
+  padding: 18px;
+}
+
+.side-panel,
+.planner {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: calc(100vh - 36px);
+  min-height: 0;
+  overflow: hidden;
+  padding: 18px;
+}
+
+.brand,
+.planner-header,
+.section-head,
+.actions,
+.field,
+.quick-times,
+.menu-title-row,
+.block-title-row {
+  display: flex;
+  align-items: center;
+}
+
+.brand,
+.planner-header,
+.section-head {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+h1 {
+  font-size: 23px;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.panel-section {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.panel-section:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.menu-section {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.section-head span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.menu-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+
+.menu-card {
+  flex: 0 0 auto;
+  min-height: 168px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--card-color, var(--speed));
+  border-radius: 8px;
+  background: #fff;
+  padding: 14px;
+  text-align: left;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.menu-card:hover,
+.menu-card.selected {
+  border-color: #2f2f2f;
+  box-shadow: 0 8px 18px rgba(32, 33, 36, 0.1);
+  transform: translateY(-1px);
+}
+
+.menu-card strong {
+  display: block;
+  margin-bottom: 5px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+}
+
+.menu-card small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.menu-title-row {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.menu-title-row span {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(32, 33, 36, 0.08);
+  color: var(--ink);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 7px;
+}
+
+.set-controls {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.mini-field {
+  display: grid;
+  grid-template-columns: 46px minmax(64px, 1fr) 24px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mini-field span,
+.mini-field small {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mini-field input {
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 8px;
+}
+
+.focus-field {
+  display: block;
+  margin-top: 10px;
+}
+
+.focus-field span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.focus-field textarea {
+  width: 100%;
+  min-height: 48px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 7px 8px;
+  line-height: 1.45;
+}
+
+.menu-duration {
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--card-color, var(--speed)) 12%, white);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 7px 8px;
+  text-align: right;
+}
+
+.menu-card-footer {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.drag-ghost {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 60;
+  pointer-events: none;
+  border: 1px solid rgba(32, 33, 36, 0.16);
+  border-left: 5px solid var(--card-color, var(--speed));
+  border-radius: 7px;
+  background: #fff;
+  opacity: 0.94;
+  padding: 9px 10px;
+  box-shadow: 0 16px 34px rgba(32, 33, 36, 0.2);
+}
+
+.drag-ghost strong,
+.drag-ghost span {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.drag-ghost strong {
+  font-size: 13px;
+}
+
+.drag-ghost span {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.quick-add-button {
+  display: none;
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+  padding: 7px 10px;
+  font-weight: 700;
+}
+
+.field {
+  gap: 8px;
+}
+
+.field span,
+.field small {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.field input,
+select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 8px 10px;
+}
+
+.field.full {
+  margin: 10px 0;
+}
+
+.field.compact {
+  min-width: 94px;
+}
+
+.field.compact input {
+  width: 56px;
+}
+
+.field.title-field {
+  min-width: 190px;
+}
+
+.field.title-field input {
+  width: 150px;
+}
+
+.quick-times {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.quick-times button,
+.secondary-button,
+.primary-button,
+.icon-button {
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #fff;
+  color: var(--ink);
+  min-height: 38px;
+  padding: 8px 12px;
+}
+
+.quick-times button.active {
+  border-color: #202124;
+  background: #202124;
+  color: #fff;
+}
+
+.primary-button {
+  border-color: #202124;
+  background: #202124;
+  color: #fff;
+  font-weight: 700;
+}
+
+.secondary-button:hover,
+.primary-button:hover,
+.icon-button:hover,
+.quick-times button:hover {
+  filter: brightness(0.95);
+}
+
+.icon-button {
+  width: 40px;
+  padding: 0;
+  font-size: 18px;
+}
+
+.hint {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.planner {
+  min-width: 0;
+  min-height: 0;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.planner-header {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.block-title-row {
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.block-title-row select {
+  width: 118px;
+  min-height: 34px;
+  padding: 5px 8px;
+}
+
+.actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.timeline-shell {
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 720px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--track);
+}
+
+.time-rail {
+  position: sticky;
+  left: 0;
+  z-index: 5;
+  background: #f7f2ea;
+  border-right: 1px solid var(--line);
+}
+
+.time-mark {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  padding-right: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  text-align: right;
+  transform: translateY(-8px);
+}
+
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(138px, 1fr));
+  min-width: 980px;
+}
+
+.day-column {
+  position: relative;
+  border-right: 1px solid var(--line);
+}
+
+.day-column:last-child {
+  border-right: 0;
+}
+
+.day-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 48px;
+  padding: 10px;
+  border-bottom: 1px solid var(--line);
+  background: rgba(255, 253, 250, 0.96);
+  backdrop-filter: blur(8px);
+}
+
+.day-head strong {
+  font-size: 14px;
+}
+
+.day-total {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.drop-zone {
+  position: relative;
+  height: var(--timeline-height);
+  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
+  background-size: 100% var(--hour-height);
+  background-position: 0 0;
+}
+
+.drop-zone.drag-over {
+  background-color: rgba(25, 118, 163, 0.08);
+}
+
+.workout {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  min-height: 112px;
+  overflow: hidden;
+  border: 1px solid rgba(32, 33, 36, 0.16);
+  border-left: 5px solid var(--card-color, var(--speed));
+  border-radius: 7px;
+  background: #fff;
+  padding: 8px 30px 8px 9px;
+  box-shadow: 0 8px 16px rgba(32, 33, 36, 0.08);
+  cursor: pointer;
+}
+
+.workout strong,
+.workout span {
+  display: block;
+  white-space: normal;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+
+.workout strong {
+  font-size: 13px;
+  line-height: 1.25;
+}
+
+.workout span {
+  color: var(--muted);
+  font-size: 11px;
+  margin-top: 2px;
+  line-height: 1.3;
+}
+
+.workout-time {
+  color: #3f4248;
+}
+
+.workout-memo {
+  color: var(--muted);
+}
+
+.delete-workout {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(32, 33, 36, 0.08);
+  color: var(--ink);
+  line-height: 1;
+  padding: 0;
+}
+
+.toast {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 40;
+  border-radius: 8px;
+  background: #202124;
+  color: #fff;
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  max-width: min(420px, calc(100vw - 36px));
+  line-height: 1.45;
+}
+
+.toast.warning {
+  background: #9c2f24;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  background: rgba(32, 33, 36, 0.28);
+  padding: 20px;
+}
+
+.modal-backdrop[hidden] {
+  display: none;
+}
+
+.edit-dialog {
+  width: min(520px, 100%);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.edit-head,
+.edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.edit-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.edit-field {
+  display: block;
+}
+
+.edit-field.full {
+  grid-column: 1 / -1;
+}
+
+.edit-field span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.edit-field input,
+.edit-field select,
+.edit-field textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+  padding: 9px 10px;
+}
+
+.edit-field textarea {
+  min-height: 96px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+@media (max-width: 980px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(260px, 38vh) minmax(0, 1fr);
+  }
+
+  .side-panel {
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .timeline-shell {
+    min-height: 0;
+  }
+
+  .planner-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions {
+    justify-content: flex-start;
   }
 }
 
-function normalizeTimeline() {
-  state.dayEnd = clamp(Number(state.dayEnd) || 19, 13, 19);
-  state.dayStart = clamp(Number(state.dayStart) || 6, 4, Math.min(12, state.dayEnd - 1));
-  state.blockType = blockLabels[state.blockType] ? state.blockType : "short";
-  state.exportTitle = String(state.exportTitle || defaultExportTitle()).trim() || defaultExportTitle();
-  state.activeDay = clamp(Number(state.activeDay) || 0, 0, days.length - 1);
-  state.workouts = state.workouts
-    .filter((workout) => workout.start < state.dayEnd * 60)
-    .map((workout) => ({
-      ...workout,
-      duration: Math.min(workout.duration, state.dayEnd * 60 - workout.start),
-    }))
-    .filter((workout) => workout.duration > 0);
-}
-
-function defaultSetting(menu) {
-  if (menu.setEnabled) {
-    return { repDuration: 2, reps: 5, repRest: 3, sets: 2, setRest: 8, focus: "" };
-  }
-  return { duration: 60, focus: "" };
-}
-
-function settingFor(menu) {
-  if (!state.menuSettings[menu.id]) {
-    state.menuSettings[menu.id] = defaultSetting(menu);
-  }
-  return state.menuSettings[menu.id];
-}
-
-function menuColor(menu) {
-  return colorFromText(menu.category || "その他");
-}
-
-function colorFromText(text) {
-  let hash = 0;
-  [...text].forEach((char) => {
-    hash = char.charCodeAt(0) + ((hash << 5) - hash);
-  });
-  const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 55%, 42%)`;
-}
-
-function clamp(value, min, max) {
-  return Math.min(max, Math.max(min, value));
-}
-
-function snapMinutes(value) {
-  return Math.round(value / 15) * 15;
-}
-
-function formatTime(totalMinutes) {
-  const hour = Math.floor(totalMinutes / 60);
-  const minute = totalMinutes % 60;
-  return `${hour}:${String(minute).padStart(2, "0")}`;
-}
-
-function timeInputValue(totalMinutes) {
-  return `${String(Math.floor(totalMinutes / 60)).padStart(2, "0")}:${String(totalMinutes % 60).padStart(2, "0")}`;
-}
-
-function timeValueToMinutes(value) {
-  const [hour = "0", minute = "0"] = String(value).split(":");
-  return Number(hour) * 60 + Number(minute);
-}
-
-function formatMinutes(minutes) {
-  return `${Math.round(minutes)}分`;
-}
-
-function calculateDuration(menu) {
-  const setting = settingFor(menu);
-  if (!menu.setEnabled) {
-    return clamp(Number(setting.duration) || 15, 5, 360);
+@media (max-width: 560px) {
+  body {
+    height: 100dvh;
+    overflow: hidden;
   }
 
-  const repDuration = clamp(Number(setting.repDuration) || 1, 1, 60);
-  const reps = clamp(Number(setting.reps) || 1, 1, 99);
-  const repRest = clamp(Number(setting.repRest) || 0, 0, 60);
-  const sets = clamp(Number(setting.sets) || 1, 1, 20);
-  const setRest = clamp(Number(setting.setRest) || 0, 0, 120);
-  return sets * reps * repDuration + sets * Math.max(0, reps - 1) * repRest + Math.max(0, sets - 1) * setRest;
-}
-
-function workoutMemo(menu) {
-  const setting = settingFor(menu);
-  const base = menu.setEnabled
-    ? `${setting.reps}本 x ${setting.sets}set / 本間${setting.repRest}分 / set間${setting.setRest}分`
-    : `${menu.category} / 負荷:${menu.load}`;
-  return setting.focus ? `${base} / 意識:${setting.focus}` : base;
-}
-
-function dragPayload(menu) {
-  return JSON.stringify({
-    action: "add",
-    title: menu.title,
-    category: menu.category,
-    load: menu.load,
-    color: menuColor(menu),
-    duration: calculateDuration(menu),
-    memo: workoutMemo(menu),
-    focus: settingFor(menu).focus || "",
-  });
-}
-
-// ===== 日別タブ（スマホ用）=====
-function renderDayTabs() {
-  dayTabsEl.innerHTML = "";
-  days.forEach((day, index) => {
-    const hasWorkouts = state.workouts.some((w) => w.day === index);
-    const tab = document.createElement("button");
-    tab.className = `day-tab${index === state.activeDay ? " active" : ""}${hasWorkouts ? " has-workouts" : ""}`;
-    tab.type = "button";
-    tab.dataset.day = index;
-    tab.innerHTML = `${escapeHtml(day)}<span class="tab-dot"></span>`;
-    tab.addEventListener("click", () => {
-      state.activeDay = index;
-      saveState();
-      renderDayTabs();
-      updateActiveDayColumn();
-      renderMenu(); // クイック追加ボタンの曜日表示を更新
-    });
-    dayTabsEl.appendChild(tab);
-  });
-}
-
-function updateActiveDayColumn() {
-  document.querySelectorAll(".day-column").forEach((col, index) => {
-    col.classList.toggle("active-day", index === state.activeDay);
-  });
-}
-
-// ===== メニューカード =====
-function renderMenu() {
-  menuCountLabel.textContent = `${state.menus.length}件`;
-  menuGrid.innerHTML = "";
-
-  state.menus.forEach((menu) => {
-    const setting = settingFor(menu);
-    const card = document.createElement("article");
-    card.className = "menu-card";
-    card.draggable = true;
-    card.style.setProperty("--card-color", menuColor(menu));
-    const activeLabel = `${days[state.activeDay]}・${state.dayStart + 1}:00`;
-    card.innerHTML = `
-      <div class="menu-title-row">
-        <strong>${escapeHtml(menu.title)}</strong>
-        <span>${escapeHtml(menu.load)}</span>
-      </div>
-      <small>${escapeHtml(menu.category)} / ${menu.setEnabled ? "セット指定可" : "時間指定"}</small>
-      ${menu.setEnabled ? setControls(menu, setting) : durationControl(menu, setting)}
-      ${focusControl(setting)}
-      <div class="menu-card-footer">
-        <div class="menu-duration">${formatMinutes(calculateDuration(menu))}</div>
-        <button class="quick-add-button" type="button">${activeLabel}に追加</button>
-      </div>
-    `;
-    card.addEventListener("dragstart", (event) => {
-      event.dataTransfer.setData("application/json", dragPayload(menu));
-      event.dataTransfer.effectAllowed = "copy";
-    });
-    setupMenuPointerDrag(card, menu);
-    card.querySelectorAll("input, textarea").forEach((input) => {
-      input.addEventListener("input", () => {
-        setting[input.name] = input.type === "number" ? Number(input.value) : input.value;
-        card.querySelector(".menu-duration").textContent = formatMinutes(calculateDuration(menu));
-        saveState();
-      });
-      input.addEventListener("pointerdown", (event) => event.stopPropagation());
-      input.addEventListener("dragstart", (event) => event.preventDefault());
-    });
-    card.querySelector(".quick-add-button").addEventListener("click", (event) => {
-      event.stopPropagation();
-      // 選択中の曜日の開始時刻+1時間に追加
-      addMenuToDay(menu, state.activeDay, (state.dayStart + 1) * 60);
-    });
-    menuGrid.appendChild(card);
-  });
-}
-
-function setupMenuPointerDrag(card, menu) {
-  let drag = null;
-
-  card.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || event.target.closest("input, textarea, button, select")) return;
-    // 右端32pxはスクロール用余白なのでドラッグ開始しない
-    const rect = card.getBoundingClientRect();
-    if (event.clientX > rect.right - 32) return;
-    drag = {
-      menu,
-      startX: event.clientX,
-      startY: event.clientY,
-      ghost: null,
-      active: false,
-      pointerId: event.pointerId,
-    };
-    card.setPointerCapture(event.pointerId);
-  });
-
-  card.addEventListener("pointermove", (event) => {
-    if (!drag) return;
-    const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
-    if (!drag.active && distance < 10) return;
-    if (!drag.active) {
-      drag.active = true;
-      drag.ghost = createDragGhost(card, menu);
-      document.body.appendChild(drag.ghost);
-    }
-    event.preventDefault();
-    moveDragGhost(drag.ghost, event.clientX, event.clientY);
-    highlightDropZone(event.clientX, event.clientY);
-  });
-
-  card.addEventListener("pointerup", (event) => {
-    if (!drag) return;
-    const current = drag;
-    drag = null;
-    if (card.hasPointerCapture(current.pointerId)) card.releasePointerCapture(current.pointerId);
-    clearDropHighlights();
-    if (current.ghost) current.ghost.remove();
-    if (!current.active) return;
-    const zone = dropZoneFromPoint(event.clientX, event.clientY);
-    if (!zone) return;
-    // スマホ: ドロップ先の曜日をactiveDayにも反映
-    const dayIndex = Number(zone.dataset.day);
-    if (!isNaN(dayIndex)) {
-      state.activeDay = dayIndex;
-    }
-    addMenuToDropPoint(current.menu, dayIndex, zone, event.clientY);
-  });
-
-  card.addEventListener("pointercancel", () => {
-    if (drag && card.hasPointerCapture(drag.pointerId)) card.releasePointerCapture(drag.pointerId);
-    if (drag?.ghost) drag.ghost.remove();
-    drag = null;
-    clearDropHighlights();
-  });
-}
-
-function createDragGhost(card, menu) {
-  const ghost = document.createElement("div");
-  ghost.classList.add("drag-ghost");
-  ghost.style.setProperty("--card-color", menuColor(menu));
-  ghost.innerHTML = `
-    <strong>${escapeHtml(menu.title)}</strong>
-    <span>${formatMinutes(calculateDuration(menu))}</span>
-  `;
-  ghost.style.width = `${Math.min(card.offsetWidth, 320)}px`;
-  return ghost;
-}
-
-function moveDragGhost(ghost, x, y) {
-  const zone = dropZoneFromPoint(x, y);
-  if (zone) {
-    ghost.style.width = `${Math.max(96, zone.getBoundingClientRect().width - 16)}px`;
+  /* 上下2ペイン固定レイアウト */
+  .app {
+    height: 100dvh;
+    grid-template-rows: 45dvh 1fr;
+    padding: 10px;
+    gap: 12px;
   }
-  ghost.style.transform = `translate(${x + 10}px, ${y + 10}px)`;
-}
 
-function highlightDropZone(x, y) {
-  clearDropHighlights();
-  dropZoneFromPoint(x, y)?.classList.add("drag-over");
-}
+  .side-panel,
+  .planner {
+    border-radius: 7px;
+    box-shadow: 0 12px 24px rgba(45, 40, 32, 0.1);
+    padding: 12px;
+  }
 
-function clearDropHighlights() {
-  document.querySelectorAll(".drop-zone.drag-over").forEach((zone) => zone.classList.remove("drag-over"));
-}
+  /* サイドパネルは画面の45%固定でメニューをその中でスクロール */
+  .side-panel {
+    max-height: 45dvh;
+    overflow: hidden;
+  }
 
-function dropZoneFromPoint(x, y) {
-  const elements = document.elementsFromPoint(x, y);
-  return elements
-    .map((element) => element.closest?.(".drop-zone") || element.closest?.(".day-column")?.querySelector(".drop-zone"))
-    .find(Boolean);
-}
+  .brand {
+    align-items: flex-start;
+  }
 
-function addMenuToDropPoint(menu, day, zone, clientY) {
-  const duration = calculateDuration(menu);
-  const rect = zone.getBoundingClientRect();
-  const y = clamp(clientY - rect.top, 0, rect.height);
-  const startOffset = snapMinutes((y / hourHeight()) * 60);
-  const maxStart = minutesPerDay() - duration;
-  const start = state.dayStart * 60 + clamp(startOffset, 0, Math.max(0, maxStart));
-  addMenuToDay(menu, day, start);
-}
+  h1 {
+    font-size: 20px;
+  }
 
-function addMenuToDay(menu, day, start) {
-  const duration = calculateDuration(menu);
-  const workout = {
-    id: crypto.randomUUID(),
-    day,
-    start: clamp(start, state.dayStart * 60, Math.max(state.dayStart * 60, state.dayEnd * 60 - duration)),
-    duration,
-    title: menu.title,
-    category: menu.category,
-    load: menu.load,
-    color: menuColor(menu),
-    memo: workoutMemo(menu),
-    focus: settingFor(menu).focus || "",
-  };
-  state.workouts.push(workout);
-  warnIfOverlapping(workout);
-  saveState();
-  render();
-}
+  h2 {
+    font-size: 16px;
+  }
 
-function focusControl(setting) {
-  return `
-    <label class="focus-field">
-      <span>意識すること</span>
-      <textarea name="focus" rows="2" placeholder="例: 接地を真下、腕振りを大きく">${escapeHtml(setting.focus || "")}</textarea>
-    </label>
-  `;
-}
+  .menu-section {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
 
-function durationControl(menu, setting) {
-  return `
-    <label class="mini-field">
-      <span>時間</span>
-      <input name="duration" type="number" min="5" max="360" step="5" value="${setting.duration}">
-      <small>分</small>
-    </label>
-  `;
-}
+  /* メニューグリッド: ボックス内スクロール、右端32pxをスクロール帯として確保 */
+  .menu-grid {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    /* カードは左寄せで右32pxを空ける */
+    padding-right: 32px;
+    /* スクロール帯はtouch-action: pan-yで縦スクロール優先 */
+    touch-action: pan-y;
+    gap: 10px;
+  }
 
-function setControls(menu, setting) {
-  return `
-    <div class="set-controls">
-      <label class="mini-field">
-        <span>1本</span>
-        <input name="repDuration" type="number" min="1" max="60" step="1" value="${setting.repDuration}">
-        <small>分</small>
-      </label>
-      <label class="mini-field">
-        <span>本数</span>
-        <input name="reps" type="number" min="1" max="99" step="1" value="${setting.reps}">
-        <small>本</small>
-      </label>
-      <label class="mini-field">
-        <span>本間</span>
-        <input name="repRest" type="number" min="0" max="60" step="1" value="${setting.repRest}">
-        <small>分</small>
-      </label>
-      <label class="mini-field">
-        <span>set</span>
-        <input name="sets" type="number" min="1" max="20" step="1" value="${setting.sets}">
-        <small>組</small>
-      </label>
-      <label class="mini-field">
-        <span>set間</span>
-        <input name="setRest" type="number" min="0" max="120" step="1" value="${setting.setRest}">
-        <small>分</small>
-      </label>
-    </div>
-  `;
-}
+  /* カードはドラッグ対象だがグリッドの右帯（32px）には侵入しない */
+  .menu-card {
+    min-height: 158px;
+    padding: 12px;
+    position: relative;
+    /* カード自体のtouchはドラッグ用にnone、右帯はグリッド側でpan-y */
+    touch-action: none;
+  }
 
-function renderTimeRail() {
-  timeRail.style.height = `${timelineHeight() + 48}px`;
-  timeRail.innerHTML = "";
-  for (let hour = state.dayStart; hour <= state.dayEnd; hour += 1) {
-    const mark = document.createElement("div");
-    mark.className = "time-mark";
-    mark.style.top = `${48 + (hour - state.dayStart) * hourHeight()}px`;
-    mark.textContent = `${hour}:00`;
-    timeRail.appendChild(mark);
+  .quick-add-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mini-field {
+    grid-template-columns: 45px minmax(58px, 1fr) 24px;
+    gap: 6px;
+  }
+
+  .set-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .focus-field textarea {
+    min-height: 44px;
+  }
+
+  .planner-header {
+    gap: 12px;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .actions .primary-button,
+  .actions .secondary-button,
+  .field.title-field {
+    grid-column: 1 / -1;
+  }
+
+  .field.title-field,
+  .field.compact {
+    min-width: 0;
+  }
+
+  .field.title-field input,
+  .field.compact input {
+    width: 100%;
+  }
+
+  .timeline-shell {
+    grid-template-columns: 50px 1fr;
+    height: auto;
+    min-height: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .time-mark {
+    font-size: 10px;
+    padding-right: 6px;
+  }
+
+  .week-grid {
+    min-width: 980px;
+    grid-template-columns: repeat(7, 140px);
+  }
+
+  .workout {
+    left: 6px;
+    right: 6px;
+    padding-right: 28px;
+  }
+
+  .edit-form {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-backdrop {
+    align-items: end;
+    padding: 10px;
+  }
+
+  .edit-dialog {
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 14px;
+  }
+
+  .edit-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--panel);
+    padding-top: 10px;
   }
 }
 
-function renderWeek() {
-  weekGrid.style.setProperty("--hour-height", `${hourHeight()}px`);
-  weekGrid.style.setProperty("--timeline-height", `${timelineHeight()}px`);
-  weekGrid.innerHTML = "";
+/* ===== スマホ対応追加スタイル ===== */
 
-  days.forEach((day, dayIndex) => {
-    const dayWorkouts = state.workouts
-      .filter((item) => item.day === dayIndex)
-      .sort((a, b) => a.start - b.start);
-    const total = dayWorkouts.reduce((sum, item) => sum + item.duration, 0);
-
-    const column = document.createElement("article");
-    column.className = `day-column${dayIndex === state.activeDay ? " active-day" : ""}`;
-    column.innerHTML = `
-      <header class="day-head">
-        <strong>${day}</strong>
-        <span class="day-total">${total}分</span>
-      </header>
-      <div class="drop-zone" data-day="${dayIndex}"></div>
-    `;
-
-    const zone = column.querySelector(".drop-zone");
-    zone.addEventListener("dragover", (event) => {
-      event.preventDefault();
-      zone.classList.add("drag-over");
-    });
-    zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
-    zone.addEventListener("drop", (event) => {
-      // ドロップ先の曜日をactiveDayに反映（スマホ用）
-      state.activeDay = dayIndex;
-      handleDrop(event, dayIndex, zone);
-    });
-
-    dayWorkouts.forEach((workout) => {
-      zone.appendChild(createWorkoutElement(workout));
-    });
-
-    weekGrid.appendChild(column);
-  });
+/* 日別タブ（デスクトップでは非表示） */
+.day-tabs {
+  display: none;
 }
 
-function workoutBlockHeight(workout) {
-  const durationHeight = (workout.duration / 60) * hourHeight() - 6;
-  const memoLines = Math.max(1, Math.ceil(String(workout.memo || "").length / 18));
-  const contentHeight = 58 + memoLines * 16;
-  return Math.max(112, durationHeight, contentHeight);
-}
+@media (max-width: 560px) {
+  /* タブバー */
+  .day-tabs {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+    flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .day-tabs::-webkit-scrollbar { display: none; }
 
-function createWorkoutElement(workout) {
-  const item = document.createElement("div");
-  item.className = "workout";
-  item.draggable = true;
-  item.style.setProperty("--card-color", workout.color);
-  item.style.top = `${((workout.start - state.dayStart * 60) / 60) * hourHeight()}px`;
-  item.style.height = `${workoutBlockHeight(workout)}px`;
-  item.innerHTML = `
-    <strong>${escapeHtml(workout.title)}</strong>
-    <span class="workout-time">${formatTime(workout.start)}-${formatTime(workout.start + workout.duration)} / ${workout.duration}分</span>
-    <span class="workout-memo">${escapeHtml(workout.memo || "")}</span>
-    <button class="delete-workout" type="button" title="削除">×</button>
-  `;
-  item.addEventListener("dragstart", (event) => {
-    event.dataTransfer.setData("application/json", JSON.stringify({ action: "move", id: workout.id }));
-    event.dataTransfer.effectAllowed = "move";
-  });
-  item.querySelector(".delete-workout").addEventListener("click", () => {
-    state.workouts = state.workouts.filter((entry) => entry.id !== workout.id);
-    saveState();
-    render();
-  });
-  item.addEventListener("click", (event) => {
-    if (event.target.closest(".delete-workout")) return;
-    openEditDialog(workout.id);
-  });
-
-  // スマホ用: 配置済みワークアウトをpointerドラッグで移動
-  setupWorkoutPointerDrag(item, workout);
-
-  return item;
-}
-
-// ===== 配置済みワークアウトのpointerドラッグ（スマホ対応）=====
-function setupWorkoutPointerDrag(item, workout) {
-  let drag = null;
-
-  item.addEventListener("pointerdown", (event) => {
-    if (event.button !== 0 || event.target.closest(".delete-workout")) return;
-    drag = {
-      workout,
-      startX: event.clientX,
-      startY: event.clientY,
-      ghost: null,
-      active: false,
-      pointerId: event.pointerId,
-    };
-    item.setPointerCapture(event.pointerId);
-  });
-
-  item.addEventListener("pointermove", (event) => {
-    if (!drag) return;
-    const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
-    if (!drag.active && distance < 12) return;
-    if (!drag.active) {
-      drag.active = true;
-      drag.ghost = createWorkoutDragGhost(workout);
-      document.body.appendChild(drag.ghost);
-    }
-    event.preventDefault();
-    event.stopPropagation();
-    drag.ghost.style.transform = `translate(${event.clientX + 10}px, ${event.clientY + 10}px)`;
-    highlightDropZone(event.clientX, event.clientY);
-  });
-
-  item.addEventListener("pointerup", (event) => {
-    if (!drag) return;
-    const current = drag;
-    drag = null;
-    if (item.hasPointerCapture(current.pointerId)) item.releasePointerCapture(current.pointerId);
-    clearDropHighlights();
-    if (current.ghost) current.ghost.remove();
-    if (!current.active) return;
-
-    const zone = dropZoneFromPoint(event.clientX, event.clientY);
-    if (!zone) return;
-
-    const dayIndex = Number(zone.dataset.day);
-    const rect = zone.getBoundingClientRect();
-    const y = clamp(event.clientY - rect.top, 0, rect.height);
-    const startOffset = snapMinutes((y / hourHeight()) * 60);
-    const maxStart = minutesPerDay() - current.workout.duration;
-    const newStart = state.dayStart * 60 + clamp(startOffset, 0, Math.max(0, maxStart));
-
-    const w = state.workouts.find((x) => x.id === current.workout.id);
-    if (w) {
-      w.day = dayIndex;
-      w.start = newStart;
-      state.activeDay = dayIndex;
-      warnIfOverlapping(w);
-      saveState();
-      render();
-    }
-  });
-
-  item.addEventListener("pointercancel", () => {
-    if (drag && item.hasPointerCapture(drag.pointerId)) item.releasePointerCapture(drag.pointerId);
-    if (drag?.ghost) drag.ghost.remove();
-    drag = null;
-    clearDropHighlights();
-  });
-}
-
-function createWorkoutDragGhost(workout) {
-  const ghost = document.createElement("div");
-  ghost.classList.add("drag-ghost");
-  ghost.style.setProperty("--card-color", workout.color);
-  ghost.innerHTML = `
-    <strong>${escapeHtml(workout.title)}</strong>
-    <span>${formatMinutes(workout.duration)}</span>
-  `;
-  ghost.style.width = "160px";
-  return ghost;
-}
-
-function handleDrop(event, dayIndex, zone) {
-  event.preventDefault();
-  zone.classList.remove("drag-over");
-
-  const raw = event.dataTransfer.getData("application/json");
-  if (!raw) return;
-
-  const payload = JSON.parse(raw);
-  const rect = zone.getBoundingClientRect();
-  const y = clamp(event.clientY - rect.top, 0, rect.height);
-  const startOffset = snapMinutes((y / hourHeight()) * 60);
-  const maxStart = minutesPerDay() - Number(payload.duration || 60);
-  const start = state.dayStart * 60 + clamp(startOffset, 0, Math.max(0, maxStart));
-
-  if (payload.action === "move") {
-    const workout = state.workouts.find((item) => item.id === payload.id);
-    if (workout) {
-      workout.day = dayIndex;
-      workout.start = start;
-      warnIfOverlapping(workout);
-    }
-  } else {
-    const workout = {
-      id: crypto.randomUUID(),
-      day: dayIndex,
-      start,
-      duration: Number(payload.duration),
-      title: payload.title,
-      category: payload.category,
-      load: payload.load,
-      color: payload.color,
-      memo: payload.memo,
-      focus: payload.focus,
-    };
-    state.workouts.push(workout);
-    warnIfOverlapping(workout);
+  .day-tab {
+    flex: 1 0 auto;
+    min-width: 44px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 6px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .day-tab.active {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+  }
+  .day-tab .tab-dot {
+    display: block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--speed);
+    margin: 3px auto 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .day-tab.has-workouts .tab-dot {
+    opacity: 1;
   }
 
-  saveState();
-  render();
-}
-
-function openEditDialog(workoutId) {
-  const workout = state.workouts.find((item) => item.id === workoutId);
-  if (!workout) return;
-  editingWorkoutId = workoutId;
-  editName.value = workout.title;
-  editDay.innerHTML = days.map((day, index) => `<option value="${index}">${day}</option>`).join("");
-  editDay.value = String(workout.day);
-  editStart.value = timeInputValue(workout.start);
-  editDuration.value = workout.duration;
-  editMemo.value = workout.memo || "";
-  editModal.hidden = false;
-  editName.focus();
-}
-
-function closeEditDialog() {
-  editingWorkoutId = null;
-  editModal.hidden = true;
-}
-
-function saveEditedWorkout() {
-  const workout = state.workouts.find((item) => item.id === editingWorkoutId);
-  if (!workout) return;
-  const duration = clamp(Number(editDuration.value) || 5, 5, 360);
-  const day = clamp(Number(editDay.value) || 0, 0, days.length - 1);
-  const latestStart = state.dayEnd * 60 - duration;
-  workout.title = editName.value.trim() || workout.title;
-  workout.day = day;
-  workout.duration = duration;
-  workout.start = clamp(snapMinutes(timeValueToMinutes(editStart.value)), state.dayStart * 60, Math.max(state.dayStart * 60, latestStart));
-  workout.memo = editMemo.value.trim();
-  workout.focus = workout.memo;
-  state.activeDay = day; // 編集後は対象曜日をアクティブに
-  saveState();
-  render();
-  closeEditDialog();
-  warnIfOverlapping(workout);
-}
-
-function deleteEditedWorkout() {
-  state.workouts = state.workouts.filter((item) => item.id !== editingWorkoutId);
-  saveState();
-  render();
-  closeEditDialog();
-}
-
-function findOverlap(workout) {
-  return state.workouts.find((item) => {
-    if (item.id === workout.id || item.day !== workout.day) return false;
-    return workout.start < item.start + item.duration && item.start < workout.start + workout.duration;
-  });
-}
-
-function warnIfOverlapping(workout) {
-  const overlap = findOverlap(workout);
-  if (overlap) {
-    showToast(`「${workout.title}」と「${overlap.title}」が重複しています！`, "warning");
+  /* タイムラインはスマホで1列のみ表示 */
+  .week-grid {
+    /* 全列を表示しつつ、activeでないものを非表示にする */
+    display: block !important;
+    min-width: unset !important;
   }
-}
-
-function fillSample() {
-  state.workouts = [
-    sampleWorkout(0, 9, "スタート練習"),
-    sampleWorkout(0, 10, "流し + WS"),
-    sampleWorkout(1, 16, "ウエイト 下半身"),
-    sampleWorkout(2, 9, "400mインターバル"),
-    sampleWorkout(3, 17, "回復ジョグ"),
-    sampleWorkout(4, 9, "120m加速走"),
-    sampleWorkout(4, 10, "体幹補強"),
-    sampleWorkout(5, 8, "テンポ走"),
-    sampleWorkout(6, 10, "回復ジョグ"),
-  ];
-  saveState();
-  render();
-}
-
-function sampleWorkout(day, hour, menuName) {
-  const menu = state.menus.find((item) => item.title === menuName || item.id === menuName) || state.menus[0];
-  return {
-    id: crypto.randomUUID(),
-    day,
-    start: hour * 60,
-    duration: calculateDuration(menu),
-    title: menu.title,
-    category: menu.category,
-    load: menu.load,
-    color: menuColor(menu),
-    memo: workoutMemo(menu),
-    focus: settingFor(menu).focus || "",
-  };
-}
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let cell = "";
-  let quoted = false;
-
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    const next = text[index + 1];
-    if (char === '"' && quoted && next === '"') {
-      cell += '"';
-      index += 1;
-    } else if (char === '"') {
-      quoted = !quoted;
-    } else if (char === "," && !quoted) {
-      row.push(cell.trim());
-      cell = "";
-    } else if ((char === "\n" || char === "\r") && !quoted) {
-      if (char === "\r" && next === "\n") index += 1;
-      row.push(cell.trim());
-      if (row.some(Boolean)) rows.push(row);
-      row = [];
-      cell = "";
-    } else {
-      cell += char;
-    }
+  .day-column {
+    display: none;
+    border-right: none;
+  }
+  .day-column.active-day {
+    display: block;
   }
 
-  row.push(cell.trim());
-  if (row.some(Boolean)) rows.push(row);
-  return rows;
-}
-
-function menusFromCsv(text) {
-  const rows = parseCsv(text.replace(/^\uFEFF/, ""));
-  const dataRows = rows[0]?.[0] === "メニュー名" ? rows.slice(1) : rows;
-  return dataRows
-    .map((row, index) => ({
-      id: `menu-${index}-${slugify(row[0] || "")}`,
-      title: row[0] || "",
-      category: row[1] || "その他",
-      load: row[2] || "中",
-      setEnabled: String(row[3] || "0").trim() === "1",
-    }))
-    .filter((menu) => menu.title);
-}
-
-async function loadMenusFromRepo() {
-  try {
-    const response = await fetch("menus.csv", { cache: "no-store" });
-    if (!response.ok) return;
-    const menus = menusFromCsv(await decodeCsvResponse(response));
-    if (!menus.length) return;
-    state.menus = menus;
-    render();
-  } catch {
-    render();
-  }
-}
-
-async function decodeCsvResponse(response) {
-  const buffer = await response.arrayBuffer();
-  try {
-    return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
-  } catch {
-    return new TextDecoder("shift_jis").decode(buffer);
-  }
-}
-
-function slugify(value) {
-  return encodeURIComponent(String(value).trim()).replaceAll("%", "").slice(0, 36) || "menu";
-}
-
-function exportPng() {
-  const title = state.exportTitle || defaultExportTitle();
-  const width = 1680;
-  const height = 1080;
-  const ctx = exportCanvas.getContext("2d");
-  exportCanvas.width = width;
-  exportCanvas.height = height;
-
-  ctx.fillStyle = "#fffdfa";
-  ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = "#202124";
-  ctx.font = "700 38px Meiryo, sans-serif";
-  ctx.fillText(title, 48, 64);
-  ctx.font = "18px Meiryo, sans-serif";
-  ctx.fillStyle = "#6c6f75";
-  ctx.fillText(`${blockLabels[state.blockType]} / ${state.dayStart}:00-${state.dayEnd}:00`, 48, 94);
-
-  const left = 92;
-  const top = 132;
-  const colWidth = (width - left - 44) / 7;
-  const rowHeight = (height - top - 50) / Math.max(1, minutesPerDay() / 60);
-
-  ctx.strokeStyle = "#ded8ce";
-  ctx.lineWidth = 1;
-  for (let hour = state.dayStart; hour <= state.dayEnd; hour += 1) {
-    const y = top + (hour - state.dayStart) * rowHeight;
-    ctx.fillStyle = "#6c6f75";
-    ctx.font = "14px Meiryo, sans-serif";
-    ctx.fillText(`${hour}:00`, 28, y + 5);
-    ctx.beginPath();
-    ctx.moveTo(left, y);
-    ctx.lineTo(width - 44, y);
-    ctx.stroke();
+  /* クイック追加ボタンをより見やすく */
+  .quick-add-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    padding: 7px 12px;
+    white-space: nowrap;
   }
 
-  days.forEach((day, index) => {
-    const x = left + colWidth * index;
-    ctx.fillStyle = "#f7f2ea";
-    ctx.fillRect(x, top - 36, colWidth, 36);
-    ctx.strokeStyle = "#ded8ce";
-    ctx.strokeRect(x, top - 36, colWidth, height - top - 14);
-    ctx.fillStyle = "#202124";
-    ctx.font = "700 20px Meiryo, sans-serif";
-    ctx.fillText(day, x + 16, top - 12);
-  });
+  /* ワークアウトブロックのタッチ操作 */
+  .workout {
+    touch-action: none;
+  }
 
-  state.workouts.forEach((item) => {
-    const x = left + colWidth * item.day + 10;
-    const y = top + ((item.start - state.dayStart * 60) / 60) * rowHeight + 4;
-    const h = Math.max(42, (item.duration / 60) * rowHeight - 8);
-    ctx.fillStyle = "#ffffff";
-    roundedRect(ctx, x, y, colWidth - 20, h, 8);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(32,33,36,0.18)";
-    ctx.stroke();
-    ctx.fillStyle = item.color || "#202124";
-    roundedRect(ctx, x, y, 8, h, 4);
-    ctx.fill();
-    ctx.fillStyle = "#202124";
-    ctx.font = "700 16px Meiryo, sans-serif";
-    ctx.fillText(item.title, x + 18, y + 24, colWidth - 48);
-    ctx.fillStyle = "#6c6f75";
-    ctx.font = "13px Meiryo, sans-serif";
-    ctx.fillText(`${formatTime(item.start)}-${formatTime(item.start + item.duration)} / ${item.duration}分`, x + 18, y + 44, colWidth - 48);
-    if (item.memo) ctx.fillText(item.memo, x + 18, y + 63, colWidth - 48);
-  });
-
-  const link = document.createElement("a");
-  link.download = `${safeFileName(title)}.png`;
-  link.href = exportCanvas.toDataURL("image/png");
-  link.click();
-  showToast("PNGを書き出しました");
+  /* タイムライン: 残り高さを全部使って縦スクロール */
+  .timeline-shell {
+    grid-template-columns: 50px 1fr;
+    flex: 1 1 auto;
+    height: 0;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
 }
-
-function safeFileName(value) {
-  return String(value)
-    .trim()
-    .replace(/[\\/:*?"<>|]/g, "_")
-    .replace(/\s+/g, "_")
-    .slice(0, 80) || defaultExportTitle();
-}
-
-function roundedRect(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
-}
-
-function showToast(message, tone = "default") {
-  const current = document.querySelector(".toast");
-  if (current) current.remove();
-  const toast = document.createElement("div");
-  toast.className = `toast ${tone === "warning" ? "warning" : ""}`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3200);
-}
-
-function escapeHtml(value) {
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-function syncInputs() {
-  dayStartInput.value = state.dayStart;
-  dayEndInput.value = state.dayEnd;
-  blockSelect.value = state.blockType;
-  plannerTitle.textContent = blockLabels[state.blockType];
-  exportTitleInput.value = state.exportTitle;
-}
-
-function render() {
-  normalizeTimeline();
-  syncInputs();
-  renderMenu();
-  renderTimeRail();
-  renderWeek();
-  renderDayTabs();
-}
-
-dayStartInput.addEventListener("change", () => {
-  state.dayStart = clamp(Number(dayStartInput.value) || 6, 4, Math.min(12, state.dayEnd - 1));
-  if (state.dayEnd <= state.dayStart) state.dayEnd = state.dayStart + 1;
-  saveState();
-  render();
-});
-
-dayEndInput.addEventListener("change", () => {
-  state.dayEnd = clamp(Number(dayEndInput.value) || 19, 13, 19);
-  if (state.dayEnd <= state.dayStart) state.dayStart = state.dayEnd - 1;
-  saveState();
-  render();
-});
-
-blockSelect.addEventListener("change", () => {
-  state.blockType = blockSelect.value;
-  saveState();
-  render();
-});
-
-exportTitleInput.addEventListener("input", () => {
-  state.exportTitle = exportTitleInput.value;
-  saveState();
-});
-
-document.querySelector("#sampleButton").addEventListener("click", fillSample);
-document.querySelector("#exportButton").addEventListener("click", exportPng);
-document.querySelector("#resetButton").addEventListener("click", () => {
-  state.workouts = [];
-  saveState();
-  render();
-});
-document.querySelector("#closeEditButton").addEventListener("click", closeEditDialog);
-document.querySelector("#saveEditButton").addEventListener("click", saveEditedWorkout);
-document.querySelector("#deleteEditButton").addEventListener("click", deleteEditedWorkout);
-editModal.addEventListener("click", (event) => {
-  if (event.target === editModal) closeEditDialog();
-});
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !editModal.hidden) closeEditDialog();
-});
-
-loadState();
-render();
-loadMenusFromRepo();
