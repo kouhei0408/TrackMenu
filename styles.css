@@ -734,18 +734,22 @@ select {
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
     gap: 10px;
-    padding-right: 0;
-    /* グリッド右端32pxをスクロール帯として残す */
-    padding: 2px 0 2px 0;
+    padding: 2px 0;
   }
 
-  /* カードを右32px手前で止めてスクロール帯を作る */
   .menu-card {
     min-height: 158px;
     padding: 12px;
-    margin-right: 32px;
     position: relative;
+    /* 長押し前はスクロール優先 */
+    touch-action: pan-y;
+  }
+
+  /* 長押し完了したらドラッグモード */
+  .menu-card.drag-ready {
     touch-action: none;
+    cursor: grabbing;
+    opacity: 0.85;
   }
 
   .quick-add-button {
