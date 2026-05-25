@@ -31,6 +31,7 @@ let state = {
   dayStart: 6,
   dayEnd: 19,
   workouts: [],
+  activeDay: 0, // スマホ用: 選択中の曜日
 };
 
 const menuGrid = document.querySelector("#menuGrid");
@@ -49,6 +50,7 @@ const editDay = document.querySelector("#editDay");
 const editStart = document.querySelector("#editStart");
 const editDuration = document.querySelector("#editDuration");
 const editMemo = document.querySelector("#editMemo");
+const dayTabsEl = document.querySelector("#dayTabs");
 let editingWorkoutId = null;
 
 function minutesPerDay() {
@@ -84,6 +86,7 @@ function normalizeTimeline() {
   state.dayStart = clamp(Number(state.dayStart) || 6, 4, Math.min(12, state.dayEnd - 1));
   state.blockType = blockLabels[state.blockType] ? state.blockType : "short";
   state.exportTitle = String(state.exportTitle || defaultExportTitle()).trim() || defaultExportTitle();
+  state.activeDay = clamp(Number(state.activeDay) || 0, 0, days.length - 1);
   state.workouts = state.workouts
     .filter((workout) => workout.start < state.dayEnd * 60)
     .map((workout) => ({
@@ -182,6 +185,34 @@ function dragPayload(menu) {
   });
 }
 
+// ===== 日別タブ（スマホ用）=====
+function renderDayTabs() {
+  dayTabsEl.innerHTML = "";
+  days.forEach((day, index) => {
+    const hasWorkouts = state.workouts.some((w) => w.day === index);
+    const tab = document.createElement("button");
+    tab.className = `day-tab${index === state.activeDay ? " active" : ""}${hasWorkouts ? " has-workouts" : ""}`;
+    tab.type = "button";
+    tab.dataset.day = index;
+    tab.innerHTML = `${escapeHtml(day)}<span class="tab-dot"></span>`;
+    tab.addEventListener("click", () => {
+      state.activeDay = index;
+      saveState();
+      renderDayTabs();
+      updateActiveDayColumn();
+      renderMenu(); // クイック追加ボタンの曜日表示を更新
+    });
+    dayTabsEl.appendChild(tab);
+  });
+}
+
+function updateActiveDayColumn() {
+  document.querySelectorAll(".day-column").forEach((col, index) => {
+    col.classList.toggle("active-day", index === state.activeDay);
+  });
+}
+
+// ===== メニューカード =====
 function renderMenu() {
   menuCountLabel.textContent = `${state.menus.length}件`;
   menuGrid.innerHTML = "";
@@ -192,6 +223,7 @@ function renderMenu() {
     card.className = "menu-card";
     card.draggable = true;
     card.style.setProperty("--card-color", menuColor(menu));
+    const activeLabel = `${days[state.activeDay]}・${state.dayStart + 1}:00`;
     card.innerHTML = `
       <div class="menu-title-row">
         <strong>${escapeHtml(menu.title)}</strong>
@@ -202,7 +234,7 @@ function renderMenu() {
       ${focusControl(setting)}
       <div class="menu-card-footer">
         <div class="menu-duration">${formatMinutes(calculateDuration(menu))}</div>
-        <button class="quick-add-button" type="button">月9:00</button>
+        <button class="quick-add-button" type="button">${activeLabel}に追加</button>
       </div>
     `;
     card.addEventListener("dragstart", (event) => {
@@ -221,7 +253,8 @@ function renderMenu() {
     });
     card.querySelector(".quick-add-button").addEventListener("click", (event) => {
       event.stopPropagation();
-      addMenuToDay(menu, 0, 9 * 60);
+      // 選択中の曜日の開始時刻+1時間に追加
+      addMenuToDay(menu, state.activeDay, (state.dayStart + 1) * 60);
     });
     menuGrid.appendChild(card);
   });
@@ -267,7 +300,12 @@ function setupMenuPointerDrag(card, menu) {
     if (!current.active) return;
     const zone = dropZoneFromPoint(event.clientX, event.clientY);
     if (!zone) return;
-    addMenuToDropPoint(current.menu, Number(zone.dataset.day), zone, event.clientY);
+    // スマホ: ドロップ先の曜日をactiveDayにも反映
+    const dayIndex = Number(zone.dataset.day);
+    if (!isNaN(dayIndex)) {
+      state.activeDay = dayIndex;
+    }
+    addMenuToDropPoint(current.menu, dayIndex, zone, event.clientY);
   });
 
   card.addEventListener("pointercancel", () => {
@@ -419,7 +457,7 @@ function renderWeek() {
     const total = dayWorkouts.reduce((sum, item) => sum + item.duration, 0);
 
     const column = document.createElement("article");
-    column.className = "day-column";
+    column.className = `day-column${dayIndex === state.activeDay ? " active-day" : ""}`;
     column.innerHTML = `
       <header class="day-head">
         <strong>${day}</strong>
@@ -434,7 +472,11 @@ function renderWeek() {
       zone.classList.add("drag-over");
     });
     zone.addEventListener("dragleave", () => zone.classList.remove("drag-over"));
-    zone.addEventListener("drop", (event) => handleDrop(event, dayIndex, zone));
+    zone.addEventListener("drop", (event) => {
+      // ドロップ先の曜日をactiveDayに反映（スマホ用）
+      state.activeDay = dayIndex;
+      handleDrop(event, dayIndex, zone);
+    });
 
     dayWorkouts.forEach((workout) => {
       zone.appendChild(createWorkoutElement(workout));
@@ -477,7 +519,93 @@ function createWorkoutElement(workout) {
     if (event.target.closest(".delete-workout")) return;
     openEditDialog(workout.id);
   });
+
+  // スマホ用: 配置済みワークアウトをpointerドラッグで移動
+  setupWorkoutPointerDrag(item, workout);
+
   return item;
+}
+
+// ===== 配置済みワークアウトのpointerドラッグ（スマホ対応）=====
+function setupWorkoutPointerDrag(item, workout) {
+  let drag = null;
+
+  item.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0 || event.target.closest(".delete-workout")) return;
+    drag = {
+      workout,
+      startX: event.clientX,
+      startY: event.clientY,
+      ghost: null,
+      active: false,
+      pointerId: event.pointerId,
+    };
+    item.setPointerCapture(event.pointerId);
+  });
+
+  item.addEventListener("pointermove", (event) => {
+    if (!drag) return;
+    const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
+    if (!drag.active && distance < 12) return;
+    if (!drag.active) {
+      drag.active = true;
+      drag.ghost = createWorkoutDragGhost(workout);
+      document.body.appendChild(drag.ghost);
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    drag.ghost.style.transform = `translate(${event.clientX + 10}px, ${event.clientY + 10}px)`;
+    highlightDropZone(event.clientX, event.clientY);
+  });
+
+  item.addEventListener("pointerup", (event) => {
+    if (!drag) return;
+    const current = drag;
+    drag = null;
+    if (item.hasPointerCapture(current.pointerId)) item.releasePointerCapture(current.pointerId);
+    clearDropHighlights();
+    if (current.ghost) current.ghost.remove();
+    if (!current.active) return;
+
+    const zone = dropZoneFromPoint(event.clientX, event.clientY);
+    if (!zone) return;
+
+    const dayIndex = Number(zone.dataset.day);
+    const rect = zone.getBoundingClientRect();
+    const y = clamp(event.clientY - rect.top, 0, rect.height);
+    const startOffset = snapMinutes((y / hourHeight()) * 60);
+    const maxStart = minutesPerDay() - current.workout.duration;
+    const newStart = state.dayStart * 60 + clamp(startOffset, 0, Math.max(0, maxStart));
+
+    const w = state.workouts.find((x) => x.id === current.workout.id);
+    if (w) {
+      w.day = dayIndex;
+      w.start = newStart;
+      state.activeDay = dayIndex;
+      warnIfOverlapping(w);
+      saveState();
+      render();
+    }
+  });
+
+  item.addEventListener("pointercancel", () => {
+    if (drag && item.hasPointerCapture(drag.pointerId)) item.releasePointerCapture(drag.pointerId);
+    if (drag?.ghost) drag.ghost.remove();
+    drag = null;
+    clearDropHighlights();
+  });
+}
+
+function createWorkoutDragGhost(workout) {
+  const ghost = document.createElement("div");
+  ghost.classList.add("drag-ghost");
+  ghost.style.setProperty("--card-color", workout.color);
+  ghost.innerHTML = `
+    <strong>${escapeHtml(workout.title)}</strong>
+    <span>${formatMinutes(workout.duration)}</span>
+  `;
+  ghost.style.width = "160px";
+  return ghost;
 }
 
 function handleDrop(event, dayIndex, zone) {
@@ -553,6 +681,7 @@ function saveEditedWorkout() {
   workout.start = clamp(snapMinutes(timeValueToMinutes(editStart.value)), state.dayStart * 60, Math.max(state.dayStart * 60, latestStart));
   workout.memo = editMemo.value.trim();
   workout.focus = workout.memo;
+  state.activeDay = day; // 編集後は対象曜日をアクティブに
   saveState();
   render();
   closeEditDialog();
@@ -814,6 +943,7 @@ function render() {
   renderMenu();
   renderTimeRail();
   renderWeek();
+  renderDayTabs();
 }
 
 dayStartInput.addEventListener("change", () => {

@@ -820,3 +820,97 @@ select {
     padding-top: 10px;
   }
 }
+
+/* ===== スマホ対応追加スタイル ===== */
+
+/* 日別タブ（デスクトップでは非表示） */
+.day-tabs {
+  display: none;
+}
+
+@media (max-width: 560px) {
+  /* タブバー */
+  .day-tabs {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+    flex-shrink: 0;
+    -webkit-overflow-scrolling: touch;
+  }
+  .day-tabs::-webkit-scrollbar { display: none; }
+
+  .day-tab {
+    flex: 1 0 auto;
+    min-width: 44px;
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 6px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    position: relative;
+  }
+  .day-tab.active {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+  }
+  .day-tab .tab-dot {
+    display: block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--speed);
+    margin: 3px auto 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .day-tab.has-workouts .tab-dot {
+    opacity: 1;
+  }
+
+  /* タイムラインはスマホで1列のみ表示 */
+  .week-grid {
+    /* 全列を表示しつつ、activeでないものを非表示にする */
+    display: block !important;
+    min-width: unset !important;
+  }
+  .day-column {
+    display: none;
+    border-right: none;
+  }
+  .day-column.active-day {
+    display: block;
+  }
+
+  /* クイック追加ボタンをより見やすく */
+  .quick-add-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    padding: 7px 12px;
+    white-space: nowrap;
+  }
+
+  /* ワークアウトブロックのタッチ操作 */
+  .workout {
+    touch-action: none;
+  }
+
+  /* タイムラインシェルの高さ調整 */
+  .timeline-shell {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+}
