@@ -200,7 +200,10 @@ function renderMenu() {
       <small>${escapeHtml(menu.category)} / ${menu.setEnabled ? "セット指定可" : "時間指定"}</small>
       ${menu.setEnabled ? setControls(menu, setting) : durationControl(menu, setting)}
       ${focusControl(setting)}
-      <div class="menu-duration">${formatMinutes(calculateDuration(menu))}</div>
+      <div class="menu-card-footer">
+        <div class="menu-duration">${formatMinutes(calculateDuration(menu))}</div>
+        <button class="quick-add-button" type="button">月9:00</button>
+      </div>
     `;
     card.addEventListener("dragstart", (event) => {
       event.dataTransfer.setData("application/json", dragPayload(menu));
@@ -215,8 +218,32 @@ function renderMenu() {
       input.addEventListener("pointerdown", (event) => event.stopPropagation());
       input.addEventListener("dragstart", (event) => event.preventDefault());
     });
+    card.querySelector(".quick-add-button").addEventListener("click", (event) => {
+      event.stopPropagation();
+      addMenuToDay(menu, 0, 9 * 60);
+    });
     menuGrid.appendChild(card);
   });
+}
+
+function addMenuToDay(menu, day, start) {
+  const duration = calculateDuration(menu);
+  const workout = {
+    id: crypto.randomUUID(),
+    day,
+    start: clamp(start, state.dayStart * 60, Math.max(state.dayStart * 60, state.dayEnd * 60 - duration)),
+    duration,
+    title: menu.title,
+    category: menu.category,
+    load: menu.load,
+    color: menuColor(menu),
+    memo: workoutMemo(menu),
+    focus: settingFor(menu).focus || "",
+  };
+  state.workouts.push(workout);
+  warnIfOverlapping(workout);
+  saveState();
+  render();
 }
 
 function focusControl(setting) {
