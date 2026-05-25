@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Track Week Planner</title>
+    <title>メニュー生成ツール</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -27,7 +27,7 @@
 
         <section class="panel-section composer">
           <h2>配置方法</h2>
-          <p class="hint">各メニューカード内で時間を決め、そのカードをそのまま曜日へドラッグしてください。セット指定ありのカードは本数とレストから所要時間を計算します。</p>
+          <p class="hint">各カードの「追加」ボタンで選択中の曜日へ追加。カードはドラッグでタイムラインへ配置もできます。配置済み種目はタップで編集できます。</p>
         </section>
       </aside>
 
@@ -60,6 +60,9 @@
             <button class="primary-button" id="exportButton" type="button">PNG保存</button>
           </div>
         </header>
+
+        <!-- スマホ用: 日別タブ -->
+        <nav class="day-tabs" id="dayTabs" aria-label="曜日選択"></nav>
 
         <div class="timeline-shell" id="exportArea">
           <div class="time-rail" id="timeRail"></div>
