@@ -240,6 +240,7 @@ function setupMenuPointerDrag(card, menu) {
       active: false,
       pointerId: event.pointerId,
     };
+    card.setPointerCapture(event.pointerId);
   });
 
   card.addEventListener("pointermove", (event) => {
@@ -248,9 +249,8 @@ function setupMenuPointerDrag(card, menu) {
     if (!drag.active && distance < 10) return;
     if (!drag.active) {
       drag.active = true;
-      drag.ghost = createDragGhost(card);
+      drag.ghost = createDragGhost(card, menu);
       document.body.appendChild(drag.ghost);
-      card.setPointerCapture(drag.pointerId);
     }
     event.preventDefault();
     moveDragGhost(drag.ghost, event.clientX, event.clientY);
@@ -261,39 +261,57 @@ function setupMenuPointerDrag(card, menu) {
     if (!drag) return;
     const current = drag;
     drag = null;
+    if (card.hasPointerCapture(current.pointerId)) card.releasePointerCapture(current.pointerId);
     clearDropHighlights();
     if (current.ghost) current.ghost.remove();
     if (!current.active) return;
-    const zone = document.elementFromPoint(event.clientX, event.clientY)?.closest(".drop-zone");
+    const zone = dropZoneFromPoint(event.clientX, event.clientY);
     if (!zone) return;
     addMenuToDropPoint(current.menu, Number(zone.dataset.day), zone, event.clientY);
   });
 
   card.addEventListener("pointercancel", () => {
+    if (drag && card.hasPointerCapture(drag.pointerId)) card.releasePointerCapture(drag.pointerId);
     if (drag?.ghost) drag.ghost.remove();
     drag = null;
     clearDropHighlights();
   });
 }
 
-function createDragGhost(card) {
-  const ghost = card.cloneNode(true);
+function createDragGhost(card, menu) {
+  const ghost = document.createElement("div");
   ghost.classList.add("drag-ghost");
+  ghost.style.setProperty("--card-color", menuColor(menu));
+  ghost.innerHTML = `
+    <strong>${escapeHtml(menu.title)}</strong>
+    <span>${formatMinutes(calculateDuration(menu))}</span>
+  `;
   ghost.style.width = `${Math.min(card.offsetWidth, 320)}px`;
   return ghost;
 }
 
 function moveDragGhost(ghost, x, y) {
-  ghost.style.transform = `translate(${x + 12}px, ${y + 12}px)`;
+  const zone = dropZoneFromPoint(x, y);
+  if (zone) {
+    ghost.style.width = `${Math.max(96, zone.getBoundingClientRect().width - 16)}px`;
+  }
+  ghost.style.transform = `translate(${x + 10}px, ${y + 10}px)`;
 }
 
 function highlightDropZone(x, y) {
   clearDropHighlights();
-  document.elementFromPoint(x, y)?.closest(".drop-zone")?.classList.add("drag-over");
+  dropZoneFromPoint(x, y)?.classList.add("drag-over");
 }
 
 function clearDropHighlights() {
   document.querySelectorAll(".drop-zone.drag-over").forEach((zone) => zone.classList.remove("drag-over"));
+}
+
+function dropZoneFromPoint(x, y) {
+  const elements = document.elementsFromPoint(x, y);
+  return elements
+    .map((element) => element.closest?.(".drop-zone") || element.closest?.(".day-column")?.querySelector(".drop-zone"))
+    .find(Boolean);
 }
 
 function addMenuToDropPoint(menu, day, zone, clientY) {
