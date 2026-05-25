@@ -722,42 +722,22 @@ select {
     flex: 0 0 auto;
   }
 
-  /* メニューグリッド: 右端に余白を作りスクロール可能に */
+  /* メニューグリッド: ページごとスクロール、高さ制限なし */
   .menu-grid {
     display: flex;
     flex-direction: column;
-    max-height: 60dvh;
-    overflow-y: auto;
-    overflow-x: hidden;
-    /* 右端16pxをスクロール用に確保 */
-    padding-right: 16px;
-    margin-right: -4px;
-    -webkit-overflow-scrolling: touch;
-    /* グリッド自体はスクロール優先 */
-    touch-action: pan-y;
+    overflow: visible;
+    padding-right: 0;
+    margin-right: 0;
+    gap: 10px;
   }
 
+  /* カード右端20pxをスクロール用余白に */
   .menu-card {
     min-height: 158px;
-    padding: 12px;
-    /* カード内のドラッグ領域を限定（右端の余白以外でスクロール可能） */
-    touch-action: pan-y;
-  }
-
-  /* ドラッグ用のつまみ領域を左ボーダー付近に限定するビジュアルヒント */
-  .menu-card::after {
-    content: "⠿";
-    position: absolute;
-    right: 28px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--muted);
-    font-size: 16px;
-    opacity: 0.4;
-    pointer-events: none;
-  }
-  .menu-card {
+    padding: 12px 32px 12px 12px;
     position: relative;
+    touch-action: pan-y;
   }
 
   .quick-add-button {
