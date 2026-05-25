@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Track Week Planner</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <aside class="side-panel">
+        <div class="brand">
+          <div>
+            <p class="eyebrow">Track Week Planner</p>
+            <h1>陸上メニュー組み立て</h1>
+          </div>
+          <button class="icon-button" id="resetButton" type="button" title="リセット">↺</button>
+        </div>
+
+        <section class="panel-section menu-section">
+          <div class="section-head">
+            <h2>メニュー選択</h2>
+            <span id="menuCountLabel">0件</span>
+          </div>
+          <div class="menu-grid" id="menuGrid"></div>
+        </section>
+
+        <section class="panel-section composer">
+          <h2>配置方法</h2>
+          <p class="hint">各メニューカード内で時間を決め、そのカードをそのまま曜日へドラッグしてください。セット指定ありのカードは本数とレストから所要時間を計算します。</p>
+        </section>
+      </aside>
+
+      <section class="planner">
+        <header class="planner-header">
+          <div>
+            <p class="eyebrow">Weekly timeline</p>
+            <div class="block-title-row">
+              <h2 id="plannerTitle">短距離ブロック</h2>
+              <select id="blockSelect" aria-label="ブロック種別">
+                <option value="short">短距離</option>
+                <option value="long">長距離</option>
+              </select>
+            </div>
+          </div>
+          <div class="actions">
+            <label class="field title-field">
+              <span>画像名</span>
+              <input id="exportTitleInput" type="text" />
+            </label>
+            <label class="field compact">
+              <span>開始</span>
+              <input id="dayStartInput" type="number" min="4" max="12" value="6" />
+            </label>
+            <label class="field compact">
+              <span>終了</span>
+              <input id="dayEndInput" type="number" min="13" max="19" value="19" />
+            </label>
+            <button class="secondary-button" id="sampleButton" type="button">サンプル</button>
+            <button class="primary-button" id="exportButton" type="button">PNG保存</button>
+          </div>
+        </header>
+
+        <div class="timeline-shell" id="exportArea">
+          <div class="time-rail" id="timeRail"></div>
+          <div class="week-grid" id="weekGrid"></div>
+        </div>
+      </section>
+    </main>
+
+    <canvas id="exportCanvas" hidden></canvas>
+    <div class="modal-backdrop" id="editModal" hidden>
+      <section class="edit-dialog" role="dialog" aria-modal="true" aria-labelledby="editTitle">
+        <header class="edit-head">
+          <h2 id="editTitle">メニュー編集</h2>
+          <button class="icon-button" id="closeEditButton" type="button" title="閉じる">×</button>
+        </header>
+        <div class="edit-form">
+          <label class="edit-field full">
+            <span>メニュー名</span>
+            <input id="editName" type="text" />
+          </label>
+          <label class="edit-field">
+            <span>曜日</span>
+            <select id="editDay"></select>
+          </label>
+          <label class="edit-field">
+            <span>開始</span>
+            <input id="editStart" type="time" step="900" />
+          </label>
+          <label class="edit-field">
+            <span>時間</span>
+            <input id="editDuration" type="number" min="5" max="360" step="5" />
+          </label>
+          <label class="edit-field full">
+            <span>意識すること・メモ</span>
+            <textarea id="editMemo" rows="4"></textarea>
+          </label>
+        </div>
+        <footer class="edit-actions">
+          <button class="secondary-button" id="deleteEditButton" type="button">削除</button>
+          <button class="primary-button" id="saveEditButton" type="button">保存</button>
+        </footer>
+      </section>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>
