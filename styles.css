@@ -797,10 +797,20 @@ select {
     width: 100%;
   }
 
+  /* プランナーをflexにしてタイムラインが残り高さを埋める */
+  .planner {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
   .timeline-shell {
     grid-template-columns: 50px 1fr;
-    height: auto;
+    flex: 1 1 auto;
     min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
   }
 
