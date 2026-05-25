@@ -1,4 +1,152 @@
+:root {
+  --bg: #f4f1eb;
+  --panel: #fffdfa;
+  --ink: #202124;
+  --muted: #6c6f75;
+  --line: #ded8ce;
+  --track: #faf8f4;
+  --speed: #df3f32;
+  --endurance: #1976a3;
+  --strength: #6e8b3d;
+  --recovery: #8c6dba;
+  --technical: #d58c21;
+  --shadow: 0 20px 45px rgba(45, 40, 32, 0.13);
+}
 
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Yu Gothic UI", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.app {
+  display: grid;
+  grid-template-columns: minmax(380px, 460px) 1fr;
+  gap: 18px;
+  height: 100vh;
+  overflow: hidden;
+  padding: 18px;
+}
+
+.side-panel,
+.planner {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: calc(100vh - 36px);
+  min-height: 0;
+  overflow: hidden;
+  padding: 18px;
+}
+
+.brand,
+.planner-header,
+.section-head,
+.actions,
+.field,
+.quick-times,
+.menu-title-row,
+.block-title-row {
+  display: flex;
+  align-items: center;
+}
+
+.brand,
+.planner-header,
+.section-head {
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.eyebrow {
+  margin: 0 0 4px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+h1,
+h2 {
+  margin: 0;
+}
+
+h1 {
+  font-size: 23px;
+  line-height: 1.2;
+}
+
+h2 {
+  font-size: 17px;
+  line-height: 1.25;
+}
+
+.panel-section {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.panel-section:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.menu-section {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.section-head span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.menu-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+
+.menu-card {
+  flex: 0 0 auto;
+  min-height: 168px;
+  border: 1px solid var(--line);
+  border-left: 5px solid var(--card-color, var(--speed));
+  border-radius: 8px;
+  background: #fff;
   padding: 14px;
   text-align: left;
   transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
@@ -783,7 +931,7 @@ select {
   .timeline-shell {
     grid-template-columns: 50px 1fr;
     flex: 1 1 auto;
-    height: 100%;
+    height: 0;
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
