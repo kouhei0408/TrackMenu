@@ -723,28 +723,28 @@ select {
     flex-direction: column;
   }
 
-  /* メニューグリッド: ボックス内スクロール、右端32pxをスクロール帯として確保 */
+  /* メニューグリッド: ボックス内スクロール */
   .menu-grid {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
-    overflow-y: scroll;
+    overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    /* カードは左寄せで右32pxを空ける */
-    padding-right: 32px;
-    /* スクロール帯はtouch-action: pan-yで縦スクロール優先 */
     touch-action: pan-y;
     gap: 10px;
+    padding-right: 0;
+    /* グリッド右端32pxをスクロール帯として残す */
+    padding: 2px 0 2px 0;
   }
 
-  /* カードはドラッグ対象だがグリッドの右帯（32px）には侵入しない */
+  /* カードを右32px手前で止めてスクロール帯を作る */
   .menu-card {
     min-height: 158px;
     padding: 12px;
+    margin-right: 32px;
     position: relative;
-    /* カード自体のtouchはドラッグ用にnone、右帯はグリッド側でpan-y */
     touch-action: none;
   }
 
