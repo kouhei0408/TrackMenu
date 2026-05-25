@@ -261,71 +261,60 @@ function renderMenu() {
 }
 
 function setupMenuPointerDrag(card, menu) {
-  let ds = null;
-
-  function cancel() {
-    if (!ds) return;
-    clearTimeout(ds.longPressTimer);
-    if (ds.ghost) ds.ghost.remove();
-    if (card.hasPointerCapture(ds.pointerId)) card.releasePointerCapture(ds.pointerId);
-    clearDropHighlights();
-    card.classList.remove("drag-ready");
-    ds = null;
-  }
+  let drag = null;
 
   card.addEventListener("pointerdown", (event) => {
     if (event.button !== 0 || event.target.closest("input, textarea, button, select")) return;
-    ds = {
+    // カード右端32pxはmargin-rightのスクロール帯なのでタッチが届かない
+    drag = {
       menu,
       startX: event.clientX,
       startY: event.clientY,
       ghost: null,
-      dragging: false,
-      ready: false,
+      active: false,
       pointerId: event.pointerId,
-      longPressTimer: null,
     };
-    // 200ms長押しでドラッグ準備完了
-    ds.longPressTimer = setTimeout(() => {
-      if (!ds) return;
-      ds.ready = true;
-      card.classList.add("drag-ready");
-      card.setPointerCapture(ds.pointerId);
-    }, 200);
+    card.setPointerCapture(event.pointerId);
   });
 
   card.addEventListener("pointermove", (event) => {
-    if (!ds) return;
-    const distance = Math.hypot(event.clientX - ds.startX, event.clientY - ds.startY);
-    // 長押し前に指が動いたらキャンセル（スクロールを優先）
-    if (!ds.ready) {
-      if (distance > 8) cancel();
-      return;
-    }
-    // 長押し後: ドラッグ開始
-    if (!ds.dragging) {
-      ds.dragging = true;
-      ds.ghost = createDragGhost(card, menu);
-      document.body.appendChild(ds.ghost);
+    if (!drag) return;
+    const distance = Math.hypot(event.clientX - drag.startX, event.clientY - drag.startY);
+    if (!drag.active && distance < 10) return;
+    if (!drag.active) {
+      drag.active = true;
+      drag.ghost = createDragGhost(card, menu);
+      document.body.appendChild(drag.ghost);
     }
     event.preventDefault();
-    moveDragGhost(ds.ghost, event.clientX, event.clientY);
+    moveDragGhost(drag.ghost, event.clientX, event.clientY);
     highlightDropZone(event.clientX, event.clientY);
   });
 
   card.addEventListener("pointerup", (event) => {
-    if (!ds) return;
-    const current = ds;
-    cancel();
-    if (!current.dragging) return;
+    if (!drag) return;
+    const current = drag;
+    drag = null;
+    if (card.hasPointerCapture(current.pointerId)) card.releasePointerCapture(current.pointerId);
+    clearDropHighlights();
+    if (current.ghost) current.ghost.remove();
+    if (!current.active) return;
     const zone = dropZoneFromPoint(event.clientX, event.clientY);
     if (!zone) return;
+    // スマホ: ドロップ先の曜日をactiveDayにも反映
     const dayIndex = Number(zone.dataset.day);
-    if (!isNaN(dayIndex)) state.activeDay = dayIndex;
+    if (!isNaN(dayIndex)) {
+      state.activeDay = dayIndex;
+    }
     addMenuToDropPoint(current.menu, dayIndex, zone, event.clientY);
   });
 
-  card.addEventListener("pointercancel", cancel);
+  card.addEventListener("pointercancel", () => {
+    if (drag && card.hasPointerCapture(drag.pointerId)) card.releasePointerCapture(drag.pointerId);
+    if (drag?.ghost) drag.ghost.remove();
+    drag = null;
+    clearDropHighlights();
+  });
 }
 
 function createDragGhost(card, menu) {
