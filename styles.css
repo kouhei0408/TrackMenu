@@ -680,12 +680,15 @@ select {
 @media (max-width: 560px) {
   body {
     height: 100dvh;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
   }
 
+  /* 縦にスクロールできるレイアウトに変更 */
   .app {
-    height: 100dvh;
-    grid-template-rows: minmax(250px, 42dvh) minmax(0, 1fr);
+    height: auto;
+    min-height: 100dvh;
+    grid-template-rows: auto auto;
     padding: 10px;
     gap: 12px;
   }
@@ -695,6 +698,12 @@ select {
     border-radius: 7px;
     box-shadow: 0 12px 24px rgba(45, 40, 32, 0.1);
     padding: 12px;
+  }
+
+  /* サイドパネルは内容に合わせた高さ */
+  .side-panel {
+    max-height: none;
+    overflow: visible;
   }
 
   .brand {
@@ -710,24 +719,45 @@ select {
   }
 
   .menu-section {
-    flex: 1 1 auto;
-    min-height: 0;
+    flex: 0 0 auto;
   }
 
+  /* メニューグリッド: 右端に余白を作りスクロール可能に */
   .menu-grid {
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    max-height: 60dvh;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 0;
+    /* 右端16pxをスクロール用に確保 */
+    padding-right: 16px;
+    margin-right: -4px;
     -webkit-overflow-scrolling: touch;
+    /* グリッド自体はスクロール優先 */
+    touch-action: pan-y;
   }
 
   .menu-card {
     min-height: 158px;
     padding: 12px;
-    touch-action: none;
+    /* カード内のドラッグ領域を限定（右端の余白以外でスクロール可能） */
+    touch-action: pan-y;
+  }
+
+  /* ドラッグ用のつまみ領域を左ボーダー付近に限定するビジュアルヒント */
+  .menu-card::after {
+    content: "⠿";
+    position: absolute;
+    right: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 16px;
+    opacity: 0.4;
+    pointer-events: none;
+  }
+  .menu-card {
+    position: relative;
   }
 
   .quick-add-button {
@@ -905,12 +935,12 @@ select {
     touch-action: none;
   }
 
-  /* タイムラインシェルの高さ調整 */
+  /* タイムラインシェル: 内容の高さに合わせて縦に伸びる */
   .timeline-shell {
-    flex: 1 1 auto;
+    grid-template-columns: 50px 1fr;
     height: auto;
-    min-height: 0;
-    overflow-y: auto;
+    min-height: 600px;
+    overflow: visible;
     overflow-x: hidden;
   }
 }
