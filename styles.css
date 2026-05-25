@@ -1,711 +1,42 @@
-:root {
-  --bg: #f4f1eb;
-  --panel: #fffdfa;
-  --ink: #202124;
-  --muted: #6c6f75;
-  --line: #ded8ce;
-  --track: #faf8f4;
-  --speed: #df3f32;
-  --endurance: #1976a3;
-  --strength: #6e8b3d;
-  --recovery: #8c6dba;
-  --technical: #d58c21;
-  --shadow: 0 20px 45px rgba(45, 40, 32, 0.13);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  height: 100vh;
-  overflow: hidden;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: "Yu Gothic UI", "Hiragino Sans", "Meiryo", system-ui, sans-serif;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-.app {
-  display: grid;
-  grid-template-columns: minmax(380px, 460px) 1fr;
-  gap: 18px;
-  height: 100vh;
-  overflow: hidden;
-  padding: 18px;
-}
-
-.side-panel,
-.planner {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.side-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  max-height: calc(100vh - 36px);
-  min-height: 0;
-  overflow: hidden;
-  padding: 18px;
-}
-
-.brand,
-.planner-header,
-.section-head,
-.actions,
-.field,
-.quick-times,
-.menu-title-row,
-.block-title-row {
-  display: flex;
-  align-items: center;
-}
-
-.brand,
-.planner-header,
-.section-head {
-  justify-content: space-between;
-  gap: 14px;
-}
-
-.eyebrow {
-  margin: 0 0 4px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0;
-  text-transform: uppercase;
-}
-
-h1,
-h2 {
-  margin: 0;
-}
-
-h1 {
-  font-size: 23px;
-  line-height: 1.2;
-}
-
-h2 {
-  font-size: 17px;
-  line-height: 1.25;
-}
-
-.panel-section {
-  border-top: 1px solid var(--line);
-  padding-top: 16px;
-}
-
-.panel-section:first-of-type {
-  border-top: 0;
-  padding-top: 0;
-}
-
-.menu-section {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-height: 0;
-}
-
-.section-head span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.menu-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 12px;
-  min-height: 0;
-  overflow-y: auto;
-  padding-right: 8px;
-  scrollbar-gutter: stable;
-}
-
-.menu-card {
-  flex: 0 0 auto;
-  min-height: 168px;
-  border: 1px solid var(--line);
-  border-left: 5px solid var(--card-color, var(--speed));
-  border-radius: 8px;
-  background: #fff;
-  padding: 14px;
-  text-align: left;
-  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
-}
-
-.menu-card:hover,
-.menu-card.selected {
-  border-color: #2f2f2f;
-  box-shadow: 0 8px 18px rgba(32, 33, 36, 0.1);
-  transform: translateY(-1px);
-}
-
-.menu-card strong {
-  display: block;
-  margin-bottom: 5px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  font-size: 15px;
-}
-
-.menu-card small {
-  display: block;
-  color: var(--muted);
-  line-height: 1.35;
-}
-
-.menu-title-row {
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.menu-title-row span {
-  flex: 0 0 auto;
-  border-radius: 999px;
-  background: rgba(32, 33, 36, 0.08);
-  color: var(--ink);
-  font-size: 11px;
-  font-weight: 700;
-  padding: 3px 7px;
-}
-
-.set-controls {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 7px;
-  margin-top: 12px;
-}
-
-.mini-field {
-  display: grid;
-  grid-template-columns: 46px minmax(64px, 1fr) 24px;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.mini-field span,
-.mini-field small {
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.mini-field input {
-  width: 100%;
-  min-width: 0;
-  height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 7px 8px;
-}
-
-.focus-field {
-  display: block;
-  margin-top: 10px;
-}
-
-.focus-field span {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--muted);
-  font-size: 11px;
-  font-weight: 700;
-}
-
-.focus-field textarea {
-  width: 100%;
-  min-height: 48px;
-  resize: vertical;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 7px 8px;
-  line-height: 1.45;
-}
-
-.menu-duration {
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--card-color, var(--speed)) 12%, white);
-  color: var(--ink);
-  font-size: 13px;
-  font-weight: 700;
-  padding: 7px 8px;
-  text-align: right;
-}
-
-.menu-card-footer {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.drag-ghost {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 60;
-  pointer-events: none;
-  border: 1px solid rgba(32, 33, 36, 0.16);
-  border-left: 5px solid var(--card-color, var(--speed));
-  border-radius: 7px;
-  background: #fff;
-  opacity: 0.94;
-  padding: 9px 10px;
-  box-shadow: 0 16px 34px rgba(32, 33, 36, 0.2);
-}
-
-.drag-ghost strong,
-.drag-ghost span {
-  display: block;
-  overflow-wrap: anywhere;
-}
-
-.drag-ghost strong {
-  font-size: 13px;
-}
-
-.drag-ghost span {
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.quick-add-button {
-  display: none;
-  min-height: 34px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: #fff;
-  color: var(--ink);
-  padding: 7px 10px;
-  font-weight: 700;
-}
-
-.field {
-  gap: 8px;
-}
-
-.field span,
-.field small {
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.field input,
-select {
-  width: 100%;
-  min-height: 38px;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #fff;
-  padding: 8px 10px;
-}
-
-.field.full {
-  margin: 10px 0;
-}
-
-.field.compact {
-  min-width: 94px;
-}
-
-.field.compact input {
-  width: 56px;
-}
-
-.field.title-field {
-  min-width: 190px;
-}
-
-.field.title-field input {
-  width: 150px;
-}
-
-.quick-times {
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 12px 0;
-}
-
-.quick-times button,
-.secondary-button,
-.primary-button,
-.icon-button {
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: #fff;
-  color: var(--ink);
-  min-height: 38px;
-  padding: 8px 12px;
-}
-
-.quick-times button.active {
-  border-color: #202124;
-  background: #202124;
-  color: #fff;
-}
-
-.primary-button {
-  border-color: #202124;
-  background: #202124;
-  color: #fff;
-  font-weight: 700;
-}
-
-.secondary-button:hover,
-.primary-button:hover,
-.icon-button:hover,
-.quick-times button:hover {
-  filter: brightness(0.95);
-}
-
-.icon-button {
-  width: 40px;
-  padding: 0;
-  font-size: 18px;
-}
-
-.hint {
-  margin: 10px 0 0;
-  color: var(--muted);
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.planner {
-  min-width: 0;
-  min-height: 0;
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-}
-
-.planner-header {
-  align-items: flex-start;
-  margin-bottom: 16px;
-}
-
-.block-title-row {
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.block-title-row select {
-  width: 118px;
-  min-height: 34px;
-  padding: 5px 8px;
-}
-
-.actions {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-}
-
-.timeline-shell {
-  display: grid;
-  grid-template-columns: 60px 1fr;
-  flex: 1 1 auto;
-  height: auto;
-  min-height: 720px;
-  overflow: auto;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--track);
-}
-
-.time-rail {
-  position: sticky;
-  left: 0;
-  z-index: 5;
-  background: #f7f2ea;
-  border-right: 1px solid var(--line);
-}
-
-.time-mark {
-  position: absolute;
-  left: 0;
-  width: 100%;
-  padding-right: 8px;
-  color: var(--muted);
-  font-size: 11px;
-  text-align: right;
-  transform: translateY(-8px);
-}
-
-.week-grid {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(138px, 1fr));
-  min-width: 980px;
-}
-
-.day-column {
-  position: relative;
-  border-right: 1px solid var(--line);
-}
-
-.day-column:last-child {
-  border-right: 0;
-}
-
-.day-head {
-  position: sticky;
-  top: 0;
-  z-index: 4;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 48px;
-  padding: 10px;
-  border-bottom: 1px solid var(--line);
-  background: rgba(255, 253, 250, 0.96);
-  backdrop-filter: blur(8px);
-}
-
-.day-head strong {
-  font-size: 14px;
-}
-
-.day-total {
-  color: var(--muted);
-  font-size: 11px;
-}
-
-.drop-zone {
-  position: relative;
-  height: var(--timeline-height);
-  background-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.07) 1px, transparent 1px);
-  background-size: 100% var(--hour-height);
-  background-position: 0 0;
-}
-
-.drop-zone.drag-over {
-  background-color: rgba(25, 118, 163, 0.08);
-}
-
-.workout {
-  position: absolute;
-  left: 8px;
-  right: 8px;
-  min-height: 112px;
-  overflow: hidden;
-  border: 1px solid rgba(32, 33, 36, 0.16);
-  border-left: 5px solid var(--card-color, var(--speed));
-  border-radius: 7px;
-  background: #fff;
-  padding: 8px 30px 8px 9px;
-  box-shadow: 0 8px 16px rgba(32, 33, 36, 0.08);
-  cursor: pointer;
-}
-
-.workout strong,
-.workout span {
-  display: block;
-  white-space: normal;
-  overflow: hidden;
-  overflow-wrap: anywhere;
-  word-break: keep-all;
-}
-
-.workout strong {
-  font-size: 13px;
-  line-height: 1.25;
-}
-
-.workout span {
-  color: var(--muted);
-  font-size: 11px;
-  margin-top: 2px;
-  line-height: 1.3;
-}
-
-.workout-time {
-  color: #3f4248;
-}
-
-.workout-memo {
-  color: var(--muted);
-}
-
-.delete-workout {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  width: 22px;
-  height: 22px;
-  border: 0;
-  border-radius: 50%;
-  background: rgba(32, 33, 36, 0.08);
-  color: var(--ink);
-  line-height: 1;
-  padding: 0;
-}
-
-.toast {
-  position: fixed;
-  right: 18px;
-  bottom: 18px;
-  z-index: 40;
-  border-radius: 8px;
-  background: #202124;
-  color: #fff;
-  padding: 12px 14px;
-  box-shadow: var(--shadow);
-  max-width: min(420px, calc(100vw - 36px));
-  line-height: 1.45;
-}
-
-.toast.warning {
-  background: #9c2f24;
-}
-
-.modal-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 30;
-  display: grid;
-  place-items: center;
-  background: rgba(32, 33, 36, 0.28);
-  padding: 20px;
-}
-
-.modal-backdrop[hidden] {
-  display: none;
-}
-
-.edit-dialog {
-  width: min(520px, 100%);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: var(--panel);
-  box-shadow: var(--shadow);
-  padding: 18px;
-}
-
-.edit-head,
-.edit-actions {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.edit-form {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin: 16px 0;
-}
-
-.edit-field {
-  display: block;
-}
-
-.edit-field.full {
-  grid-column: 1 / -1;
-}
-
-.edit-field span {
-  display: block;
-  margin-bottom: 5px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 700;
-}
-
-.edit-field input,
-.edit-field select,
-.edit-field textarea {
-  width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 6px;
-  background: #fff;
-  padding: 9px 10px;
-}
-
-.edit-field textarea {
-  min-height: 96px;
-  resize: vertical;
-  line-height: 1.45;
-}
-
-@media (max-width: 980px) {
-  .app {
-    grid-template-columns: 1fr;
-    grid-template-rows: minmax(260px, 38vh) minmax(0, 1fr);
-  }
-
-  .side-panel {
-    max-height: none;
-    overflow: hidden;
-  }
-
-  .timeline-shell {
-    min-height: 0;
-  }
-
-  .planner-header {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .actions {
-    justify-content: flex-start;
-  }
-}
-
 @media (max-width: 560px) {
   body {
     height: 100dvh;
     overflow: hidden;
   }
 
-  /* 上下2ペイン固定レイアウト */
+  /* アプリ全体 */
   .app {
     height: 100dvh;
+    grid-template-columns: 1fr;
     grid-template-rows: 45dvh 1fr;
     padding: 10px;
     gap: 12px;
+    overflow: hidden;
   }
 
+  /* 共通パネル */
   .side-panel,
   .planner {
     border-radius: 7px;
     box-shadow: 0 12px 24px rgba(45, 40, 32, 0.1);
     padding: 12px;
+    min-height: 0;
   }
 
-  /* サイドパネルは画面の45%固定でメニューをその中でスクロール */
+  /* =========================
+     サイドパネル
+  ========================= */
+
   .side-panel {
+    display: flex;
+    flex-direction: column;
     max-height: 45dvh;
     overflow: hidden;
   }
 
   .brand {
     align-items: flex-start;
+    flex-shrink: 0;
   }
 
   h1 {
@@ -717,22 +48,24 @@ select {
   }
 
   .menu-section {
-    flex: 1 1 auto;
-    min-height: 0;
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
   }
 
-  /* メニューグリッド: ボックス内スクロール */
   .menu-grid {
     display: flex;
     flex-direction: column;
     flex: 1 1 auto;
     min-height: 0;
+
     overflow-y: auto;
     overflow-x: hidden;
+
     -webkit-overflow-scrolling: touch;
     touch-action: pan-y;
+
     gap: 10px;
     padding: 2px 0;
   }
@@ -741,22 +74,46 @@ select {
     min-height: 158px;
     padding: 12px;
     position: relative;
-    /* 長押し前はスクロール優先 */
     touch-action: pan-y;
   }
 
-  /* 長押し完了したらドラッグモード */
   .menu-card.drag-ready {
     touch-action: none;
     cursor: grabbing;
     opacity: 0.85;
   }
 
+  /* =========================
+     ボタン類
+  ========================= */
+
   .quick-add-button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+
+    font-size: 12px;
+    padding: 7px 12px;
+
+    white-space: nowrap;
   }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .actions .primary-button,
+  .actions .secondary-button,
+  .field.title-field {
+    grid-column: 1 / -1;
+  }
+
+  /* =========================
+     入力系
+  ========================= */
 
   .mini-field {
     grid-template-columns: 45px minmax(58px, 1fr) 24px;
@@ -771,22 +128,6 @@ select {
     min-height: 44px;
   }
 
-  .planner-header {
-    gap: 12px;
-  }
-
-  .actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    width: 100%;
-  }
-
-  .actions .primary-button,
-  .actions .secondary-button,
-  .field.title-field {
-    grid-column: 1 / -1;
-  }
-
   .field.title-field,
   .field.compact {
     min-width: 0;
@@ -797,21 +138,132 @@ select {
     width: 100%;
   }
 
-  /* プランナーをflexにしてタイムラインが残り高さを埋める */
+  /* =========================
+     プランナー
+  ========================= */
+
   .planner {
     display: flex;
     flex-direction: column;
+
+    height: 100%;
     min-height: 0;
+
     overflow: hidden;
   }
 
+  .planner-header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    flex-shrink: 0;
+  }
+
+  /* =========================
+     日別タブ
+  ========================= */
+
+  .day-tabs {
+    display: flex;
+    gap: 0;
+
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+
+    flex-shrink: 0;
+
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .day-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .day-tab {
+    flex: 1 0 auto;
+    min-width: 44px;
+
+    border: none;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+
+    background: transparent;
+    color: var(--muted);
+
+    font-size: 13px;
+    font-weight: 700;
+
+    padding: 10px 6px 8px;
+
+    text-align: center;
+    cursor: pointer;
+
+    transition:
+      color 0.15s,
+      border-color 0.15s;
+
+    position: relative;
+  }
+
+  .day-tab.active {
+    color: var(--ink);
+    border-bottom-color: var(--ink);
+  }
+
+  .day-tab .tab-dot {
+    display: block;
+
+    width: 5px;
+    height: 5px;
+
+    border-radius: 50%;
+
+    background: var(--speed);
+
+    margin: 3px auto 0;
+
+    opacity: 0;
+
+    transition: opacity 0.15s;
+  }
+
+  .day-tab.has-workouts .tab-dot {
+    opacity: 1;
+  }
+
+  /* =========================
+     タイムライン
+  ========================= */
+
   .timeline-shell {
+    display: grid;
     grid-template-columns: 50px 1fr;
+
     flex: 1 1 auto;
-    min-height: 0;
+    min-height: 300px;
+
     overflow-y: auto;
     overflow-x: hidden;
+
     -webkit-overflow-scrolling: touch;
+
+    border: 1px solid var(--line);
+    border-radius: 8px;
+
+    background: var(--track);
+  }
+
+  .time-rail {
+    position: sticky;
+    left: 0;
+    z-index: 5;
+
+    background: #f7f2ea;
+    border-right: 1px solid var(--line);
   }
 
   .time-mark {
@@ -819,16 +271,100 @@ select {
     padding-right: 6px;
   }
 
+  /* 1日だけ表示 */
   .week-grid {
-    min-width: 980px;
-    grid-template-columns: repeat(7, 140px);
+    display: block !important;
+
+    width: 100%;
+    min-width: 0 !important;
   }
 
+  .day-column {
+    display: none;
+    border-right: none;
+  }
+
+  .day-column.active-day {
+    display: block;
+    width: 100%;
+  }
+
+  /* タイムライン本体 */
+  .drop-zone {
+    position: relative;
+
+    min-height: 1400px;
+
+    background-image:
+      linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.07) 1px,
+        transparent 1px
+      );
+
+    background-size: 100% var(--hour-height);
+    background-position: 0 0;
+  }
+
+  .drop-zone.drag-over {
+    background-color: rgba(25, 118, 163, 0.08);
+  }
+
+  /* =========================
+     ワークアウト
+  ========================= */
+
   .workout {
+    position: absolute;
+
     left: 6px;
     right: 6px;
-    padding-right: 28px;
+
+    min-height: 112px;
+
+    overflow: hidden;
+
+    border: 1px solid rgba(32, 33, 36, 0.16);
+    border-left: 5px solid var(--card-color, var(--speed));
+
+    border-radius: 7px;
+
+    background: #fff;
+
+    padding: 8px 28px 8px 9px;
+
+    box-shadow: 0 8px 16px rgba(32, 33, 36, 0.08);
+
+    touch-action: none;
   }
+
+  .workout strong,
+  .workout span {
+    display: block;
+
+    overflow: hidden;
+    overflow-wrap: anywhere;
+
+    white-space: normal;
+  }
+
+  .workout strong {
+    font-size: 13px;
+    line-height: 1.25;
+  }
+
+  .workout span {
+    margin-top: 2px;
+
+    color: var(--muted);
+
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  /* =========================
+     モーダル
+  ========================= */
 
   .edit-form {
     grid-template-columns: 1fr;
@@ -848,103 +384,9 @@ select {
   .edit-actions {
     position: sticky;
     bottom: 0;
+
     background: var(--panel);
+
     padding-top: 10px;
-  }
-}
-
-/* ===== スマホ対応追加スタイル ===== */
-
-/* 日別タブ（デスクトップでは非表示） */
-.day-tabs {
-  display: none;
-}
-
-@media (max-width: 560px) {
-  /* タブバー */
-  .day-tabs {
-    display: flex;
-    gap: 0;
-    overflow-x: auto;
-    scrollbar-width: none;
-    border-bottom: 1px solid var(--line);
-    background: var(--panel);
-    flex-shrink: 0;
-    -webkit-overflow-scrolling: touch;
-  }
-  .day-tabs::-webkit-scrollbar { display: none; }
-
-  .day-tab {
-    flex: 1 0 auto;
-    min-width: 44px;
-    border: none;
-    border-bottom: 3px solid transparent;
-    border-radius: 0;
-    background: transparent;
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 700;
-    padding: 10px 6px 8px;
-    text-align: center;
-    cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
-    position: relative;
-  }
-  .day-tab.active {
-    color: var(--ink);
-    border-bottom-color: var(--ink);
-  }
-  .day-tab .tab-dot {
-    display: block;
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: var(--speed);
-    margin: 3px auto 0;
-    opacity: 0;
-    transition: opacity 0.15s;
-  }
-  .day-tab.has-workouts .tab-dot {
-    opacity: 1;
-  }
-
-  /* タイムラインはスマホで1列のみ表示 */
-  .week-grid {
-    /* 全列を表示しつつ、activeでないものを非表示にする */
-    display: block !important;
-    min-width: unset !important;
-  }
-  .day-column {
-    display: none;
-    border-right: none;
-  }
-  .day-column.active-day {
-    display: block;
-  }
-
-  /* クイック追加ボタンをより見やすく */
-  .quick-add-button {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    padding: 7px 12px;
-    white-space: nowrap;
-  }
-
-  /* ワークアウトブロックのタッチ操作 */
-  .workout {
-    touch-action: none;
-  }
-
-  /* タイムライン: 残り高さを全部使って縦スクロール */
-  .timeline-shell {
-    grid-template-columns: 50px 1fr;
-    flex: 1 1 auto;
-    height: 0;
-    min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
   }
 }
