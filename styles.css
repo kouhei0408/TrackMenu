@@ -680,15 +680,13 @@ select {
 @media (max-width: 560px) {
   body {
     height: 100dvh;
-    overflow-y: auto;
-    overflow-x: hidden;
+    overflow: hidden;
   }
 
-  /* 縦にスクロールできるレイアウトに変更 */
+  /* 上下2ペイン固定レイアウト */
   .app {
-    height: auto;
-    min-height: 100dvh;
-    grid-template-rows: auto auto;
+    height: 100dvh;
+    grid-template-rows: 45dvh 1fr;
     padding: 10px;
     gap: 12px;
   }
@@ -700,10 +698,10 @@ select {
     padding: 12px;
   }
 
-  /* サイドパネルは内容に合わせた高さ */
+  /* サイドパネルは画面の45%固定でメニューをその中でスクロール */
   .side-panel {
-    max-height: none;
-    overflow: visible;
+    max-height: 45dvh;
+    overflow: hidden;
   }
 
   .brand {
@@ -719,25 +717,35 @@ select {
   }
 
   .menu-section {
-    flex: 0 0 auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
-  /* メニューグリッド: ページごとスクロール、高さ制限なし */
+  /* メニューグリッド: ボックス内スクロール、右端32pxをスクロール帯として確保 */
   .menu-grid {
     display: flex;
     flex-direction: column;
-    overflow: visible;
-    padding-right: 0;
-    margin-right: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    /* カードは左寄せで右32pxを空ける */
+    padding-right: 32px;
+    /* スクロール帯はtouch-action: pan-yで縦スクロール優先 */
+    touch-action: pan-y;
     gap: 10px;
   }
 
-  /* カード右端20pxをスクロール用余白に */
+  /* カードはドラッグ対象だがグリッドの右帯（32px）には侵入しない */
   .menu-card {
     min-height: 158px;
-    padding: 12px 32px 12px 12px;
+    padding: 12px;
     position: relative;
-    touch-action: pan-y;
+    /* カード自体のtouchはドラッグ用にnone、右帯はグリッド側でpan-y */
+    touch-action: none;
   }
 
   .quick-add-button {
@@ -915,12 +923,14 @@ select {
     touch-action: none;
   }
 
-  /* タイムラインシェル: 内容の高さに合わせて縦に伸びる */
+  /* タイムライン: 残り高さを全部使って縦スクロール */
   .timeline-shell {
     grid-template-columns: 50px 1fr;
-    height: auto;
-    min-height: 600px;
-    overflow: visible;
+    flex: 1 1 auto;
+    height: 0;
+    min-height: 0;
+    overflow-y: auto;
     overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
   }
 }
