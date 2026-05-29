@@ -817,8 +817,8 @@ function slugify(value) {
 
 function exportPng() {
   const title = state.exportTitle || defaultExportTitle();
-  const width = 1680;
-  const height = 1080;
+  const width = 2520;
+  const height = 1620;
   const ctx = exportCanvas.getContext("2d");
   exportCanvas.width = width;
   exportCanvas.height = height;
